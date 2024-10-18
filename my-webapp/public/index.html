@@ -11,109 +11,13 @@
     <script defer src="/__/firebase/10.14.1/firebase-auth-compat.js"></script>
     <script defer src="/__/firebase/init.js"></script>
 
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        background-color: #f4f4f4;
-        margin: 0;
-        padding: 20px;
-      }
-
-      .container {
-        max-width: 600px;
-        margin: 0 auto;
-        background-color: #fff;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      }
-
-      .logout-btn {
-        background-color: #f04a3e;
-        color: white;
-        padding: 10px;
-        border: none;
-        cursor: pointer;
-        border-radius: 4px;
-        font-size: 16px;
-        margin-bottom: 20px;
-      }
-
-      textarea {
-        width: 100%;
-        height: 150px;
-        padding: 10px;
-        margin-bottom: 20px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        font-size: 16px;
-      }
-
-      .entry-list {
-        list-style: none;
-        padding: 0;
-      }
-
-      .entry-day {
-        font-size: 18px;
-        font-weight: bold;
-        color: #333;
-        margin-top: 20px;
-        margin-bottom: 10px;
-        border-bottom: 1px solid #ddd;
-        padding-bottom: 5px;
-      }
-
-      .entry-list li {
-        margin-bottom: 15px;
-      }
-
-      .entry {
-        background-color: #f9f9f9;
-        padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        position: relative;
-      }
-
-      .timestamp {
-        font-size: 14px;
-        color: #555;
-        margin-bottom: 5px;
-        font-weight: bold;
-      }
-
-      .entry-text {
-        font-size: 16px;
-        line-height: 1.6;
-        color: #333;
-        white-space: pre-wrap; /* Keeps line breaks in journal entries */
-      }
-
-      .actions {
-        margin-top: 10px;
-      }
-
-      .edit-btn, .delete-btn {
-        background-color: #f04a3e;
-        color: white;
-        border: none;
-        padding: 5px 10px;
-        cursor: pointer;
-        border-radius: 4px;
-        margin-right: 5px;
-        font-size: 14px;
-      }
-
-      .edit-btn {
-        background-color: #4CAF50;
-      }
-    </style>
+    <!-- Link to CSS File -->
+    <link rel="stylesheet" href="styles/style.css">
   </head>
   <body>
     <div class="container">
       <h1>My Journal</h1>
+      <input type="text" id="search-bar" class="search-bar" placeholder="Search by text or date (e.g., 'Monday, Oct 17')">
       <div id="user-info" style="margin-bottom: 20px;"></div>
       <button id="logout-btn" class="logout-btn" style="display: none;">Log Out</button>
       <textarea id="journalEntry" placeholder="Start typing your journal entry..."></textarea>
@@ -231,17 +135,17 @@
               if (timeDifference <= 15) {
                 const actionsDiv = document.createElement('div');
                 actionsDiv.className = 'actions';
-
+                
                 const editButton = document.createElement('button');
                 editButton.className = 'edit-btn';
                 editButton.textContent = 'Edit';
                 editButton.onclick = () => editEntry(entryId, entry.text);
-
+                
                 const deleteButton = document.createElement('button');
                 deleteButton.className = 'delete-btn';
                 deleteButton.textContent = 'Delete';
                 deleteButton.onclick = () => deleteEntry(entryId);
-
+                
                 actionsDiv.appendChild(editButton);
                 actionsDiv.appendChild(deleteButton);
                 li.appendChild(actionsDiv);
@@ -287,5 +191,6 @@
         loadEntries();
       });
     </script>
+    <script src="js/search_functionality.js" defer></script>
   </body>
 </html>
