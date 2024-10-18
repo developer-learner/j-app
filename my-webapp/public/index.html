@@ -8,6 +8,7 @@
     <!-- Firebase SDK -->
     <script defer src="/__/firebase/10.14.1/firebase-app-compat.js"></script>
     <script defer src="/__/firebase/10.14.1/firebase-firestore-compat.js"></script>
+    <script defer src="/__/firebase/10.14.1/firebase-auth-compat.js"></script>
     <script defer src="/__/firebase/init.js"></script>
 
     <style>
@@ -25,6 +26,17 @@
         padding: 20px;
         border-radius: 8px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .logout-btn {
+        background-color: #f04a3e;
+        color: white;
+        padding: 10px;
+        border: none;
+        cursor: pointer;
+        border-radius: 4px;
+        font-size: 16px;
+        margin-bottom: 20px;
       }
 
       textarea {
@@ -102,19 +114,45 @@
   <body>
     <div class="container">
       <h1>My Journal</h1>
+      <div id="user-info" style="margin-bottom: 20px;"></div>
+      <button id="logout-btn" class="logout-btn" style="display: none;">Log Out</button>
       <textarea id="journalEntry" placeholder="Start typing your journal entry..."></textarea>
       <ul id="entries" class="entry-list"></ul>
     </div>
 
     <script>
-      // Initialize Firebase and Firestore
-      document.addEventListener('DOMContentLoaded', function() {
+      document.addEventListener('DOMContentLoaded', function () {
+        const auth = firebase.auth();
+        const logoutBtn = document.getElementById('logout-btn');
+        const userInfo = document.getElementById('user-info');
+
+        // Ensure only authenticated users can access the journal page
+        auth.onAuthStateChanged(user => {
+          if (!user) {
+            // If no user is signed in, redirect to the login page
+            window.location.href = 'login.html';
+          } else {
+            // Display logged-in user's email and show logout button
+            userInfo.textContent = `Logged in as: ${user.email}`;
+            logoutBtn.style.display = 'block';
+          }
+        });
+
+        // Log out function
+        logoutBtn.onclick = function () {
+          auth.signOut().then(() => {
+            window.location.href = 'login.html';
+          }).catch(error => {
+            console.error('Error signing out:', error);
+          });
+        };
+
         const db = firebase.firestore();
         const journalEntry = document.getElementById('journalEntry');
         let autoSaveTimeout;
 
         // Auto-save the journal entry
-        journalEntry.addEventListener('input', function() {
+        journalEntry.addEventListener('input', function () {
           clearTimeout(autoSaveTimeout);
           autoSaveTimeout = setTimeout(() => {
             saveEntry(journalEntry.value);
@@ -152,7 +190,7 @@
               const entry = doc.data();
               const entryId = doc.id;
               const entryDate = entry.timestamp.toDate();
-              
+
               // Format date for the banner (Monday, Oct 17)
               const dayString = entryDate.toLocaleDateString('en-US', {
                 weekday: 'long',
@@ -186,25 +224,24 @@
                 <div class="entry-text">${entry.text}</div>
               `;
 
-              // Check if the entry was created within the last 15 minutes
+              // Add Edit and Delete buttons if entry is within 15 minutes of creation
               const now = new Date();
               const timeDifference = (now - entryDate) / (1000 * 60); // difference in minutes
 
               if (timeDifference <= 15) {
-                // Add Edit and Delete buttons if entry is within 15 minutes
                 const actionsDiv = document.createElement('div');
                 actionsDiv.className = 'actions';
-                
+
                 const editButton = document.createElement('button');
                 editButton.className = 'edit-btn';
                 editButton.textContent = 'Edit';
                 editButton.onclick = () => editEntry(entryId, entry.text);
-                
+
                 const deleteButton = document.createElement('button');
                 deleteButton.className = 'delete-btn';
                 deleteButton.textContent = 'Delete';
                 deleteButton.onclick = () => deleteEntry(entryId);
-                
+
                 actionsDiv.appendChild(editButton);
                 actionsDiv.appendChild(deleteButton);
                 li.appendChild(actionsDiv);
