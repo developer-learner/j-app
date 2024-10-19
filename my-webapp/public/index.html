@@ -20,7 +20,10 @@
       <input type="text" id="search-bar" class="search-bar" placeholder="Search by text or date (e.g., 'Monday, Oct 17')">
       <div id="user-info" style="margin-bottom: 20px;"></div>
       <button id="logout-btn" class="logout-btn" style="display: none;">Log Out</button>
-      <textarea id="journalEntry" placeholder="Start typing your journal entry..."></textarea>
+      <div class="entry-container">
+        <textarea id="journalEntry" placeholder="Start typing your journal entry..."></textarea>
+        <button id="save-btn" class="save-btn"><span class="arrow">&#11014;</span></button>
+      </div>
       <ul id="entries" class="entry-list"></ul>
     </div>
 
@@ -29,6 +32,8 @@
         const auth = firebase.auth();
         const logoutBtn = document.getElementById('logout-btn');
         const userInfo = document.getElementById('user-info');
+        const saveBtn = document.getElementById('save-btn');
+        const journalEntry = document.getElementById('journalEntry');
 
         // Ensure only authenticated users can access the journal page
         auth.onAuthStateChanged(user => {
@@ -52,15 +57,10 @@
         };
 
         const db = firebase.firestore();
-        const journalEntry = document.getElementById('journalEntry');
-        let autoSaveTimeout;
 
-        // Auto-save the journal entry
-        journalEntry.addEventListener('input', function () {
-          clearTimeout(autoSaveTimeout);
-          autoSaveTimeout = setTimeout(() => {
-            saveEntry(journalEntry.value);
-          }, 1000); // Auto-save after 1 second of inactivity
+        // Save entry when button is clicked
+        saveBtn.addEventListener('click', function () {
+          saveEntry(journalEntry.value);
         });
 
         // Save entry to Firestore
@@ -128,32 +128,34 @@
                 <div class="entry-text">${entry.text}</div>
               `;
 
-              // Add Edit and Delete buttons if entry is within 15 minutes of creation
-              const now = new Date();
-              const timeDifference = (now - entryDate) / (1000 * 60); // difference in minutes
-
-              if (timeDifference <= 15) {
-                const actionsDiv = document.createElement('div');
-                actionsDiv.className = 'actions';
-                
-                const editButton = document.createElement('button');
-                editButton.className = 'edit-btn';
-                editButton.textContent = 'Edit';
-                editButton.onclick = () => editEntry(entryId, entry.text);
-                
-                const deleteButton = document.createElement('button');
-                deleteButton.className = 'delete-btn';
-                deleteButton.textContent = 'Delete';
-                deleteButton.onclick = () => deleteEntry(entryId);
-                
-                actionsDiv.appendChild(editButton);
-                actionsDiv.appendChild(deleteButton);
-                li.appendChild(actionsDiv);
-              }
-
+              addEditDeleteButtons(entryDate, li, entryId, entry);
               entriesList.appendChild(li);
             });
           });
+        }
+
+        // Add Edit and Delete buttons if entry is within 15 minutes of creation
+        function addEditDeleteButtons(entryDate, li, entryId, entry) {
+          const now = new Date();
+          const timeDifference = (now - entryDate) / (1000 * 60); // difference in minutes
+          if (timeDifference <= 15) {
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'actions';
+            
+            const editButton = document.createElement('button');
+            editButton.className = 'edit-btn';
+            editButton.textContent = 'Edit';
+            editButton.onclick = () => editEntry(entryId, entry.text);
+            
+            const deleteButton = document.createElement('button');
+            deleteButton.className = 'delete-btn';
+            deleteButton.textContent = 'Delete';
+            deleteButton.onclick = () => deleteEntry(entryId);
+            
+            actionsDiv.appendChild(editButton);
+            actionsDiv.appendChild(deleteButton);
+            li.appendChild(actionsDiv);
+          }
         }
 
         // Edit an entry
