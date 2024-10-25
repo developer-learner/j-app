@@ -20,7 +20,6 @@
       <div class="tabs" id="tabs-container">
         <div id="primary-tab" class="tab active" data-journal="primary">Primary</div>
         <div id="work-tab" class="tab" data-journal="work">Work</div>
-        <!-- Plus button to add new journal -->
         <button id="add-journal-btn" class="add-journal-btn">+</button>
       </div>
       <input type="text" id="search-bar" class="search-bar" placeholder="Search by text or date (e.g., 'Monday, Oct 17')">
@@ -34,20 +33,18 @@
     </div>
 
     <script>
+      let currentJournal = 'primary'; // Default journal
+
       document.addEventListener('DOMContentLoaded', function () {
-        const auth = firebase.auth();
-        const logoutBtn = document.getElementById('logout-btn');
-        const userInfo = document.getElementById('user-info');
-        const saveBtn = document.getElementById('save-btn');
+        const db = firebase.firestore();
+
         const journalEntry = document.getElementById('journalEntry');
+        const saveBtn = document.getElementById('save-btn');
         const addJournalBtn = document.getElementById('add-journal-btn');
         const entriesList = document.getElementById('entries');
         const searchBar = document.getElementById('search-bar');
-        let currentJournal = 'primary'; // Default journal is 'primary'
 
-        const db = firebase.firestore();
-
-        // Attach event listeners for the tabs (including dynamic ones)
+        // Attach event listeners for tabs and dynamically created tabs
         function attachTabListeners() {
           document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', () => {
@@ -58,9 +55,15 @@
 
         // Function to switch between journals and load entries
         function switchJournal(journal) {
-          currentJournal = journal;
+          currentJournal = journal; // Update the current journal
 
-          // Toggle active tab styling
+          // Dispatch a custom event to notify the search functionality of the journal change
+          const journalChangeEvent = new CustomEvent('journalSwitch', { detail: { currentJournal } });
+          window.dispatchEvent(journalChangeEvent);
+
+          console.log(`Switched to journal: ${currentJournal}`);
+
+          // Update active tab styling
           document.querySelectorAll('.tab').forEach(tab => {
             tab.classList.toggle('active', tab.getAttribute('data-journal') === journal);
           });
@@ -69,37 +72,36 @@
           loadEntries();
         }
 
-        // Load entries from Firestore based on current journal
+        // Load entries from Firestore based on the current journal
         function loadEntries() {
           const collectionName = (currentJournal === 'primary') ? 'journalEntries' : `${currentJournal}JournalEntries`;
 
+          console.log(`Loading entries from collection: ${collectionName}`); // Debugging output
+
           db.collection(collectionName).orderBy('timestamp', 'desc').get()
             .then(snapshot => {
-              entriesList.innerHTML = '';  // Clear the list
+              entriesList.innerHTML = '';  // Clear previous entries
               if (snapshot.empty) {
                 entriesList.innerHTML = '<li>No entries found for this journal.</li>';
                 return;
               }
 
-              let previousDate = null;  // Store the previous entry's date
+              let previousDate = null;
 
               snapshot.forEach(doc => {
                 const entry = doc.data();
                 const entryDate = entry.timestamp.toDate();
-                
-                // Format the full date
-                const fullDate = entryDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
+                const formattedDate = entryDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
 
-                // Only display the date banner if the date is different from the previous one
-                if (previousDate !== fullDate) {
+                // Display a date banner if the entry is from a new date
+                if (previousDate !== formattedDate) {
                   const dateBanner = document.createElement('li');
                   dateBanner.className = 'entry-day';
-                  dateBanner.textContent = fullDate;
+                  dateBanner.textContent = formattedDate;
                   entriesList.appendChild(dateBanner);
-                  previousDate = fullDate;  // Update previousDate
+                  previousDate = formattedDate;
                 }
 
-                // Format the time
                 const timeString = entryDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true });
 
                 const li = document.createElement('li');
@@ -108,9 +110,6 @@
                   <div class="timestamp">${timeString}</div>
                   <div class="entry-text">${entry.text}</div>
                 `;
-
-                // Add Edit and Delete buttons for entries within 60 minutes of creation
-                addEditDeleteButtons(entryDate, li, doc.id, entry);
 
                 entriesList.appendChild(li);
               });
@@ -121,103 +120,10 @@
             });
         }
 
-        // Search function to query entries from Firestore
-        searchBar.addEventListener('input', function () {
-          const searchTerm = searchBar.value.toLowerCase();
-          const collectionName = (currentJournal === 'primary') ? 'journalEntries' : `${currentJournal}JournalEntries`;
-
-          db.collection(collectionName)
-            .orderBy('timestamp', 'desc')
-            .get()
-            .then(snapshot => {
-              entriesList.innerHTML = '';
-              snapshot.forEach(doc => {
-                const entry = doc.data();
-                const textContent = entry.text.toLowerCase();
-                const entryDate = entry.timestamp.toDate();
-                const timestampContent = entryDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }).toLowerCase();
-
-                // If search matches either the text content or the timestamp, display the entry
-                if (textContent.includes(searchTerm) || timestampContent.includes(searchTerm)) {
-                  const li = document.createElement('li');
-                  li.className = 'entry';
-                  li.innerHTML = `
-                    <div class="timestamp">${entryDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true })}</div>
-                    <div class="entry-text">${entry.text}</div>
-                  `;
-                  addEditDeleteButtons(entryDate, li, doc.id, entry);
-                  entriesList.appendChild(li);
-                }
-              });
-            })
-            .catch(error => {
-              console.error('Error searching entries:', error);
-              entriesList.innerHTML = '<li>Error searching entries. Please try again later.</li>';
-            });
-        });
-
-        // Helper function to add Edit and Delete buttons for recent entries
-        function addEditDeleteButtons(entryDate, li, entryId, entry) {
-          const now = new Date();
-          const timeDifference = (now - entryDate) / (1000 * 60); // Time difference in minutes
-          if (timeDifference <= 60) { // Only allow editing within 60 minutes
-            const actionsDiv = document.createElement('div');
-            actionsDiv.className = 'actions';
-
-            const editButton = document.createElement('button');
-            editButton.className = 'edit-btn';
-            editButton.textContent = 'Edit';
-            editButton.onclick = () => editEntry(entryId, entry.text);
-
-            const deleteButton = document.createElement('button');
-            deleteButton.className = 'delete-btn';
-            deleteButton.textContent = 'Delete';
-            deleteButton.onclick = () => deleteEntry(entryId);
-
-            actionsDiv.appendChild(editButton);
-            actionsDiv.appendChild(deleteButton);
-            li.appendChild(actionsDiv);
-          }
-        }
-
-        // Edit an entry
-        function editEntry(entryId, currentText) {
-          const collectionName = (currentJournal === 'primary') ? 'journalEntries' : `${currentJournal}JournalEntries`;
-          const newText = prompt('Edit your entry:', currentText);
-          if (newText !== null && newText.trim() !== '') {
-            db.collection(collectionName).doc(entryId).update({
-              text: newText
-            })
-            .then(() => {
-              console.log('Entry updated!');
-              loadEntries(); // Refresh entries after update
-            })
-            .catch(error => {
-              console.error('Error updating entry:', error);
-            });
-          }
-        }
-
-        // Delete an entry
-        function deleteEntry(entryId) {
-          const collectionName = (currentJournal === 'primary') ? 'journalEntries' : `${currentJournal}JournalEntries`;
-          if (confirm('Are you sure you want to delete this entry?')) {
-            db.collection(collectionName).doc(entryId).delete()
-            .then(() => {
-              console.log('Entry deleted!');
-              loadEntries(); // Refresh entries after delete
-            })
-            .catch(error => {
-              console.error('Error deleting entry:', error);
-            });
-          }
-        }
-
-        // Save journal entry to Firestore
-        saveBtn.addEventListener('click', () => saveEntry(journalEntry.value));
-
-        function saveEntry(text) {
-          if (text.trim() === '') {
+        // Save a new journal entry
+        saveBtn.addEventListener('click', () => {
+          const text = journalEntry.value.trim();
+          if (text === '') {
             alert('Entry cannot be empty.');
             return;
           }
@@ -227,58 +133,15 @@
 
           db.collection(collectionName).add({ text, timestamp })
             .then(() => {
-              journalEntry.value = '';  // Clear the text area after save
-              loadEntries();  // Reload the entries
+              journalEntry.value = ''; // Clear the text area
+              loadEntries(); // Reload the entries
             })
             .catch(error => {
               console.error('Error saving entry:', error);
             });
-        }
-
-        // Ensure only authenticated users can access the journal page
-        auth.onAuthStateChanged(user => {
-          if (!user) {
-            window.location.href = 'login.html';
-          } else {
-            userInfo.textContent = `Logged in as: ${user.email}`;
-            logoutBtn.style.display = 'block';
-          }
         });
 
-        // Log out user when the logout button is clicked
-        logoutBtn.onclick = function () {
-          auth.signOut().then(() => {
-            window.location.href = 'login.html';
-          });
-        };
-
-        // Create a new journal tab dynamically and persist it
-        function createJournalTab(journalName) {
-          if (journalName.trim() === '') {
-            alert('Journal name cannot be empty.');
-            return;
-          }
-
-          const tab = document.createElement('div');
-          tab.classList.add('tab');
-          tab.textContent = journalName;
-          tab.setAttribute('data-journal', journalName);
-          tab.addEventListener('click', () => switchJournal(journalName));
-          addJournalBtn.insertAdjacentElement('beforebegin', tab);
-
-          // Persist the new journal in Firestore
-          db.collection('journals').doc(journalName).set({ name: journalName, created: new Date() })
-            .then(() => {
-              console.log('New journal saved!');
-            })
-            .catch(error => {
-              console.error('Error saving new journal:', error);
-            });
-
-          attachTabListeners(); // Reattach listeners after new tab is created
-        }
-
-        // Add a new journal when the plus button is clicked
+        // Add new journal
         addJournalBtn.addEventListener('click', () => {
           const newJournalName = prompt('Enter a name for the new journal:');
           if (newJournalName) {
@@ -287,15 +150,25 @@
           }
         });
 
-        // Attach event listeners for tabs on page load
-        attachTabListeners();
+        // Dynamically create a new journal tab
+        function createJournalTab(journalName) {
+          const tab = document.createElement('div');
+          tab.classList.add('tab');
+          tab.textContent = journalName;
+          tab.setAttribute('data-journal', journalName);
+          tab.addEventListener('click', () => switchJournal(journalName));
 
-        // Load entries for the default journal on page load
-        loadEntries();
+          addJournalBtn.insertAdjacentElement('beforebegin', tab);
+          attachTabListeners();
+        }
+
+        // Attach event listeners on page load
+        attachTabListeners();
+        loadEntries(); // Load the default journal entries
       });
     </script>
 
-    <!-- Load the search functionality from the external JS file -->
+    <!-- Link to search functionality -->
     <script src="js/search_functionality.js" defer></script>
   </body>
 </html>

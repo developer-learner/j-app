@@ -21,6 +21,9 @@ body {
 }
 
 .tab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   flex: 1;
   padding: 10px;
   text-align: center;
@@ -150,27 +153,35 @@ textarea {
   font-size: 16px;
   line-height: 1.6;
   color: #333;
-  white-space: pre-wrap; /* Keeps line breaks in journal entries */
+  white-space: pre-wrap;
 }
 
-.actions {
-  margin-top: 10px;
-  display: flex;
-  gap: 10px;
-}
-
-.edit-btn, .delete-btn {
-  background-color: #f04a3e;
-  color: white;
-  border: none;
+button {
   padding: 5px 10px;
-  cursor: pointer;
+  border: none;
   border-radius: 4px;
-  font-size: 14px;
+  cursor: pointer;
+  color: white;
 }
 
 .edit-btn {
   background-color: #4CAF50;
+}
+
+.delete-btn {
+  background-color: #f04a3e;
+}
+
+/* Style for delete journal icon */
+.delete-journal {
+  color: #f04a3e;
+  cursor: pointer;
+  margin-left: 10px;
+  font-size: 18px;
+}
+
+.delete-journal:hover {
+  color: #d1392a;
 }
 
 @media (max-width: 600px) {
