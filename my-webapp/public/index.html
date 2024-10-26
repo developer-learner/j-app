@@ -42,27 +42,61 @@
     <script>
       document.addEventListener('DOMContentLoaded', function () {
         const db = firebase.firestore();
+        const auth = firebase.auth();
         let currentJournal = 'primary';
         let existingJournals = ['primary', 'work'];
 
+        const themeToggleButton = document.getElementById('theme-toggle');
         const deleteJournalBtn = document.getElementById('delete-journal-btn');
         const addJournalBtn = document.getElementById('add-journal-btn');
         const saveBtn = document.getElementById('save-btn');
         const journalEntry = document.getElementById('journalEntry');
         const entriesList = document.getElementById('entries');
 
+        // Fetch and apply the user's theme preference from Firestore
+        auth.onAuthStateChanged(user => {
+          if (user) {
+            const userThemeDoc = db.collection('userPreferences').doc(user.uid);
+
+            // Fetch theme preference from Firestore on page load
+            userThemeDoc.get().then(doc => {
+              if (doc.exists && doc.data().theme) {
+                const savedTheme = doc.data().theme;
+                document.body.classList.add(savedTheme);
+              } else {
+                document.body.classList.add('light-theme'); // Default to light theme if none saved
+              }
+            });
+
+            // Toggle theme on button click and save to Firestore
+            themeToggleButton.addEventListener('click', () => {
+              if (document.body.classList.contains('dark-theme')) {
+                document.body.classList.replace('dark-theme', 'light-theme');
+                userThemeDoc.set({ theme: 'light-theme' }, { merge: true });
+              } else {
+                document.body.classList.replace('light-theme', 'dark-theme');
+                userThemeDoc.set({ theme: 'dark-theme' }, { merge: true });
+              }
+            });
+          } else {
+            // If user is not logged in, default to light theme
+            document.body.classList.add('light-theme');
+          }
+        });
+
         function switchJournal(journal) {
           currentJournal = journal;
+
           document.querySelectorAll('.tab').forEach(tab => {
             tab.classList.toggle('active', tab.getAttribute('data-journal') === journal);
           });
+
           const journalChangeEvent = new CustomEvent('journalSwitch', { detail: { currentJournal } });
           window.dispatchEvent(journalChangeEvent);
+
           loadEntries();
         }
 
-
-        // Load entries with date grouping and edit/delete options
         function loadEntries() {
           const collectionName = (currentJournal === 'primary') ? 'journalEntries' : `${currentJournal}JournalEntries`;
 
@@ -89,7 +123,7 @@
                   previousDate = formattedDate;
                 }
 
-                const timeString = entryDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true });
+                const timeString = `${entryDate.getHours().toString().padStart(2, '0')}:${entryDate.getMinutes().toString().padStart(2, '0')}`;
 
                 const li = document.createElement('li');
                 li.className = 'entry';
@@ -108,7 +142,6 @@
             });
         }
 
-        // Add edit and delete buttons for recent entries (within 60 minutes)
         function addEditDeleteButtons(entryDate, li, entryId, entry) {
           const now = new Date();
           const timeDifference = (now - entryDate) / (1000 * 60);
@@ -151,7 +184,6 @@
           }
         }
 
-        // Save a new entry with timestamp
         saveBtn.addEventListener('click', () => {
           const text = journalEntry.value.trim();
           if (text === '') {
@@ -196,12 +228,10 @@
           });
         }
 
-        // Adding a new journal with uniqueness check
         addJournalBtn.addEventListener('click', () => {
           const newJournalName = prompt('Enter a name for the new journal:');
           if (!newJournalName) return;
 
-          // Check for unique journal name
           if (existingJournals.includes(newJournalName.toLowerCase())) {
             alert('A journal with this name already exists. Please choose a different name.');
             return;
@@ -241,23 +271,7 @@
         });
 
         loadUserJournals();
-        switchJournal('primary'); // Initialize with primary journal
-
-        // Theme toggle functionality
-        const themeToggleButton = document.getElementById('theme-toggle');
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme) {
-          document.body.classList.add(savedTheme);
-        }
-
-        themeToggleButton.addEventListener('click', function () {
-          document.body.classList.toggle('dark-theme');
-          if (document.body.classList.contains('dark-theme')) {
-            localStorage.setItem('theme', 'dark-theme');
-          } else {
-            localStorage.removeItem('theme');
-          }
-        });
+        switchJournal('primary');
       });
     </script>
 
