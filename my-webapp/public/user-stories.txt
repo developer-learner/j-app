@@ -1,0 +1,24 @@
+User Tasks Supported by the Current Web App Code:
+
+    Authentication:
+        Login with email and password.
+        Sign-up for a new account.
+        Password Reset via email.
+
+    Journal Management:
+        Switch between journals: Tabs for switching between "Primary," "Work," and any user-created journals.
+        Add new journals: Users can create and name new journals.
+        Delete journals: Deletion of user-created journals with confirmation (excludes "Primary" and "Work").
+
+    Theme Switching:
+        Toggle between light and dark themes
+
+    Journal Entries:
+        Add entries to the currently active journal.
+        Edit entries within 60 minutes of creation.
+        Delete entries with a confirmation prompt.
+
+    Search Entries:
+        Search functionality for filtering entries based on text or date, specific to the active journal.
+
+This list covers all main features the app currently supports, as implemented in the provided files. Let me know if any specific functionality needs further adjustment or testing.
