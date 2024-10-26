@@ -120,8 +120,17 @@ h1 {
   margin: 10px 0;
 }
 
+/* Dark Theme Date Banner and Timestamp Styling */
+body.dark-theme .entry-day {
+  color: #D1B3FF !important; /* Light purple for date banner */
+}
+
+body.dark-theme .timestamp {
+  color: #FFA726; /* Light orange for timestamp */
+}
+
 .timestamp {
-  font-size: 12px;
+  font-size: 18px;
   color: #666;
 }
 
@@ -153,19 +162,4 @@ h1 {
 
 body.light-theme .container, body.dark-theme .container, body.colorful-dark-theme .container {
   transition: background-color 0.3s, color 0.3s;
-}
-.delete-journal-btn {
-  padding: 12px;
-  background-color: #FF7043;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 1rem;
-  margin-left: 10px;
-  transition: background-color 0.3s;
-}
-
-.delete-journal-btn:hover {
-  background-color: #FF5722;
 }

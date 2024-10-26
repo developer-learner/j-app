@@ -43,6 +43,7 @@
       document.addEventListener('DOMContentLoaded', function () {
         const db = firebase.firestore();
         let currentJournal = 'primary';
+        let existingJournals = ['primary', 'work'];
 
         const deleteJournalBtn = document.getElementById('delete-journal-btn');
         const addJournalBtn = document.getElementById('add-journal-btn');
@@ -52,13 +53,14 @@
 
         function switchJournal(journal) {
           currentJournal = journal;
-
           document.querySelectorAll('.tab').forEach(tab => {
             tab.classList.toggle('active', tab.getAttribute('data-journal') === journal);
           });
-
+          const journalChangeEvent = new CustomEvent('journalSwitch', { detail: { currentJournal } });
+          window.dispatchEvent(journalChangeEvent);
           loadEntries();
         }
+
 
         // Load entries with date grouping and edit/delete options
         function loadEntries() {
@@ -79,7 +81,6 @@
                 const entryDate = entry.timestamp.toDate();
                 const formattedDate = entryDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
 
-                // Add a date banner if the entry's date is different from the previous entry
                 if (formattedDate !== previousDate) {
                   const dateBanner = document.createElement('li');
                   dateBanner.className = 'entry-day';
@@ -131,7 +132,6 @@
           }
         }
 
-        // Edit an entry
         function editEntry(entryId, currentText) {
           const collectionName = (currentJournal === 'primary') ? 'journalEntries' : `${currentJournal}JournalEntries`;
           const newText = prompt('Edit your entry:', currentText);
@@ -142,7 +142,6 @@
           }
         }
 
-        // Delete an entry
         function deleteEntry(entryId) {
           const collectionName = (currentJournal === 'primary') ? 'journalEntries' : `${currentJournal}JournalEntries`;
           if (confirm('Are you sure you want to delete this entry?')) {
@@ -171,18 +170,17 @@
             .catch(error => console.error('Error saving entry:', error));
         });
 
-        // Load existing journals and tabs
         function loadUserJournals() {
           db.collection('userJournals').get().then(snapshot => {
             snapshot.forEach(doc => {
               const journalName = doc.data().name;
               createJournalTab(journalName);
+              existingJournals.push(journalName.toLowerCase());
             });
             attachTabListeners();
           });
         }
 
-        // Create and attach new journal tabs
         function createJournalTab(journalName) {
           const tab = document.createElement('div');
           tab.classList.add('tab');
@@ -198,18 +196,25 @@
           });
         }
 
-        // Add and delete journal handling
+        // Adding a new journal with uniqueness check
         addJournalBtn.addEventListener('click', () => {
           const newJournalName = prompt('Enter a name for the new journal:');
-          if (newJournalName) {
-            createJournalTab(newJournalName);
-            attachTabListeners();
-            switchJournal(newJournalName);
+          if (!newJournalName) return;
 
-            db.collection('userJournals').doc(newJournalName).set({ name: newJournalName })
-              .then(() => console.log(`New journal ${newJournalName} saved to Firestore.`))
-              .catch(error => console.error('Error saving new journal:', error));
+          // Check for unique journal name
+          if (existingJournals.includes(newJournalName.toLowerCase())) {
+            alert('A journal with this name already exists. Please choose a different name.');
+            return;
           }
+
+          createJournalTab(newJournalName);
+          attachTabListeners();
+          switchJournal(newJournalName);
+          existingJournals.push(newJournalName.toLowerCase());
+
+          db.collection('userJournals').doc(newJournalName).set({ name: newJournalName })
+            .then(() => console.log(`New journal ${newJournalName} saved to Firestore.`))
+            .catch(error => console.error('Error saving new journal:', error));
         });
 
         deleteJournalBtn.addEventListener('click', function () {
@@ -227,6 +232,7 @@
               db.collection('userJournals').doc(currentJournal).delete()
                 .then(() => {
                   document.querySelector(`.tab[data-journal='${currentJournal}']`).remove();
+                  existingJournals = existingJournals.filter(name => name !== currentJournal.toLowerCase());
                   switchJournal('primary');
                 })
                 .catch(error => console.error(`Error deleting journal ${currentJournal}:`, error));
