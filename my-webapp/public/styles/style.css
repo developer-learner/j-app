@@ -25,9 +25,16 @@ body {
 
 /* Header */
 h1 {
-  text-align: center;
+  text-align: left; /* Align to the left */
+  font-size: 2.5rem; /* Make the font larger */
+  font-weight: 700; /* Bold for emphasis */
   margin-bottom: 20px;
-  font-size: 2rem; /* Larger header for prominence */
+  background: linear-gradient(135deg, #B0B0B0, #F1F1F1, #B0B0B0); /* Sparkling gray gradient */
+  background-clip: text;
+  -webkit-background-clip: text; /* For Safari */
+  color: transparent; /* Hide background color to make gradient visible */
+  letter-spacing: 2px;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.15); /* Light shadow for depth */
 }
 
 /* Tab styles */
@@ -38,106 +45,106 @@ h1 {
 }
 
 .tab {
-  position: relative; /* Allows positioning of the delete icon within each tab */
+  position: relative;
   padding: 10px 20px;
-  padding-right: 25px; /* Space for the delete icon */
-  background-color: #333; /* Dark background for all tabs */
+  padding-right: 25px;
+  background-color: #333;
   border-radius: 5px;
   cursor: pointer;
   margin-right: 10px;
-  color: white; /* Default text color for inactive tabs */
-  transition: background-color 0.3s, color 0.3s; /* Smooth transitions */
+  color: white;
+  transition: background-color 0.3s, color 0.3s;
 }
 
 .tab.active {
-  background-color: #00796B; /* Deep teal for active tab */
-  color: #AEEB4B; /* Bright lime green for active tab text */
+  background-color: #00796B;
+  color: #AEEB4B;
 }
 
 .tab:hover {
-  background-color: #555; /* Darker grey on hover */
+  background-color: #555;
 }
 
 /* Delete icon inside each tab */
 .delete-icon {
   position: absolute;
-  right: 10px; /* Positions the icon to the right within the tab */
+  right: 10px;
   top: 50%;
   transform: translateY(-50%);
   cursor: pointer;
   font-size: 1rem;
-  color: #FF7043; /* Match the color with add-journal-btn */
+  color: #FF7043;
   transition: color 0.3s;
 }
 
 .delete-icon:hover {
-  color: #FF5722; /* Darker color on hover */
+  color: #FF5722;
 }
 
 /* Trash Button Styles */
 .delete-journal-btn {
   width: 40px;
   height: 40px;
-  background-color: #FFFFFF; /* White background for light theme */
-  color: #555555; /* Gray icon color */
-  border: 1px solid #CCCCCC; /* Light gray border */
-  border-radius: 5px; /* Square with slight rounding */
+  background-color: #FFFFFF;
+  color: #555555;
+  border: 1px solid #CCCCCC;
+  border-radius: 5px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 1.2rem; /* Icon size */
+  font-size: 1.2rem;
   transition: background-color 0.3s, color 0.3s, box-shadow 0.3s;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Soft shadow for depth */
-  margin-left: auto; /* Right-aligns the button */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-left: auto;
 }
 
 .delete-journal-btn:hover {
-  background-color: #F0F0F0; /* Slightly darker on hover */
-  color: #333333; /* Darker gray icon on hover */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Enhanced shadow on hover */
+  background-color: #F0F0F0;
+  color: #333333;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .delete-journal-btn:active {
-  background-color: #E0E0E0; /* Even darker on click */
-  color: #111111; /* Dark gray on click */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Reduced shadow on click */
+  background-color: #E0E0E0;
+  color: #111111;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* Dark Theme Trash Button */
 body.dark-theme .delete-journal-btn {
-  background-color: #2B2B2B; /* Dark gray for dark theme */
-  color: #CCCCCC; /* Light gray icon color */
-  border: 1px solid #555555; /* Darker border for dark theme */
-  box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1); /* Light shadow for dark theme */
+  background-color: #333333;
+  color: #CCCCCC;
+  border: 1px solid #555555;
+  box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
 }
 
 body.dark-theme .delete-journal-btn:hover {
-  background-color: #3A3A3A; /* Slightly lighter on hover */
-  color: #FFFFFF; /* White icon on hover */
-  box-shadow: 0 4px 8px rgba(255, 255, 255, 0.15); /* Enhanced shadow on hover */
+  background-color: #3A3A3A;
+  color: #FFFFFF;
+  box-shadow: 0 4px 8px rgba(255, 255, 255, 0.15);
 }
 
 body.dark-theme .delete-journal-btn:active {
-  background-color: #555555; /* Darker gray on click */
-  color: #EEEEEE; /* Light gray on click */
-  box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1); /* Reduced shadow on click */
+  background-color: #555555;
+  color: #EEEEEE;
+  box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
 }
 
 /* Button styles */
 .add-journal-btn, .save-btn, .logout-btn {
   padding: 12px 20px;
-  background-color: #FF7043; /* Bright orange for buttons */
+  background-color: #FF7043;
   color: white;
   border: none;
   border-radius: 5px;
   cursor: pointer;
-  font-size: 1rem; /* Consistent button font size */
+  font-size: 1rem;
   transition: background-color 0.3s;
 }
 
 .add-journal-btn:hover, .save-btn:hover, .logout-btn:hover {
-  background-color: #FF5722; /* Darker orange on hover */
+  background-color: #FF5722;
 }
 
 /* Input styles */
@@ -147,7 +154,7 @@ body.dark-theme .delete-journal-btn:active {
   border: 1px solid #ccc;
   border-radius: 5px;
   margin-bottom: 20px;
-  font-size: 1rem; /* Larger font for inputs */
+  font-size: 1rem;
 }
 
 /* Entry list styles */
@@ -172,21 +179,21 @@ body.dark-theme .delete-journal-btn:active {
 
 /* Dark Theme Date Banner and Timestamp Styling */
 body.dark-theme .entry-day {
-  color: #D1B3FF !important; /* Light purple for date banner */
+  color: #D1B3FF !important;
 }
 
 body.dark-theme .timestamp {
-  color: #FFA726; /* Light orange for timestamp */
+  color: #FFA726;
 }
 
 /* Timestamp with fixed width for alignment */
 .timestamp {
   font-size: 18px;
   color: #666;
-  min-width: 60px; /* Adjust width as needed for the format "HH:MM" */
-  text-align: left; /* Align timestamp to the left */
+  min-width: 60px;
+  text-align: left;
   display: inline-block;
-  white-space: nowrap; /* Prevents wrapping */
+  white-space: nowrap;
 }
 
 .entry-text {
@@ -194,12 +201,23 @@ body.dark-theme .timestamp {
   margin-left: 10px;
 }
 
+/* Right-aligned checkbox within each entry */
+.actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.entry-checkbox {
+  margin-left: auto; /* Aligns checkbox to the far right within actions */
+}
+
 /* Theme toggle button styles */
 .theme-toggle-container {
   position: fixed;
   top: 10px;
   right: 10px;
-  z-index: 100; /* Ensure it stays on top */
+  z-index: 100;
 }
 
 .theme-toggle {
@@ -209,10 +227,10 @@ body.dark-theme .timestamp {
   background: linear-gradient(45deg, black 50%, white 50%);
   border: 2px solid #333;
   cursor: pointer;
-  display: flex; /* Center the icon */
+  display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px; /* Adjust font size */
+  font-size: 16px;
 }
 
 body.light-theme .container, body.dark-theme .container, body.colorful-dark-theme .container {

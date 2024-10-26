@@ -53,22 +53,17 @@
         const journalEntry = document.getElementById('journalEntry');
         const entriesList = document.getElementById('entries');
 
-        // Fetch and apply the user's theme preference from Firestore
         auth.onAuthStateChanged(user => {
           if (user) {
             const userThemeDoc = db.collection('userPreferences').doc(user.uid);
-
-            // Fetch theme preference from Firestore on page load
             userThemeDoc.get().then(doc => {
               if (doc.exists && doc.data().theme) {
                 const savedTheme = doc.data().theme;
                 document.body.classList.add(savedTheme);
               } else {
-                document.body.classList.add('light-theme'); // Default to light theme if none saved
+                document.body.classList.add('light-theme');
               }
             });
-
-            // Toggle theme on button click and save to Firestore
             themeToggleButton.addEventListener('click', () => {
               if (document.body.classList.contains('dark-theme')) {
                 document.body.classList.replace('dark-theme', 'light-theme');
@@ -79,7 +74,6 @@
               }
             });
           } else {
-            // If user is not logged in, default to light theme
             document.body.classList.add('light-theme');
           }
         });
@@ -145,10 +139,10 @@
         function addEditDeleteButtons(entryDate, li, entryId, entry) {
           const now = new Date();
           const timeDifference = (now - entryDate) / (1000 * 60);
-          if (timeDifference <= 60) {
-            const actionsDiv = document.createElement('div');
-            actionsDiv.className = 'actions';
+          const actionsDiv = document.createElement('div');
+          actionsDiv.className = 'actions';
 
+          if (timeDifference <= 60) {
             const editButton = document.createElement('button');
             editButton.className = 'edit-btn';
             editButton.textContent = 'Edit';
@@ -161,8 +155,15 @@
 
             actionsDiv.appendChild(editButton);
             actionsDiv.appendChild(deleteButton);
-            li.appendChild(actionsDiv);
           }
+
+          // Create the checkbox
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.className = 'entry-checkbox';
+
+          actionsDiv.appendChild(checkbox); // Append the checkbox to the right of the actions
+          li.appendChild(actionsDiv); // Append actionsDiv to the list item
         }
 
         function editEntry(entryId, currentText) {
