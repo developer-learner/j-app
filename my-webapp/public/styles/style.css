@@ -131,8 +131,28 @@ body.dark-theme .delete-journal-btn:active {
   box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
 }
 
+/* PLUS and Upload Buttons with Light Gray Background and White Icon */
+.add-journal-btn, .save-btn {
+  font-size: 1.5rem; /* Increase icon size */
+  width: 40px;
+  height: 40px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #D3D3D3; /* Light gray background */
+  color: white; /* White icon */
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.add-journal-btn:hover, .save-btn:hover {
+  background-color: #B0B0B0; /* Slightly darker gray on hover */
+}
+
 /* Button styles */
-.add-journal-btn, .save-btn, .logout-btn {
+.logout-btn {
   padding: 12px 20px;
   background-color: #FF7043;
   color: white;
@@ -143,7 +163,7 @@ body.dark-theme .delete-journal-btn:active {
   transition: background-color 0.3s;
 }
 
-.add-journal-btn:hover, .save-btn:hover, .logout-btn:hover {
+.logout-btn:hover {
   background-color: #FF5722;
 }
 
@@ -172,14 +192,16 @@ body.dark-theme .delete-journal-btn:active {
   border-radius: 5px;
 }
 
+/* Date Banner Styling */
 .entry-day {
   font-weight: bold;
   margin: 10px 0;
+  color: #2C3E50; /* Original color for light theme */
 }
 
-/* Dark Theme Date Banner and Timestamp Styling */
+/* Dark Theme Date Banner Styling */
 body.dark-theme .entry-day {
-  color: #D1B3FF !important;
+  color: #AEEB4B !important; /* Matches active tab color in dark theme */
 }
 
 body.dark-theme .timestamp {
@@ -204,12 +226,28 @@ body.dark-theme .timestamp {
 /* Right-aligned checkbox within each entry */
 .actions {
   display: flex;
-  gap: 10px;
+  gap: 8px; /* Space between icon buttons and checkbox */
   align-items: center;
 }
 
+/* Edit and Delete Icon Buttons */
+.edit-btn, .delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem; /* Icon size */
+  color: #666;
+  padding: 5px; /* Minimal padding for smaller size */
+  transition: color 0.3s;
+}
+
+.edit-btn:hover, .delete-btn:hover {
+  color: #333;
+}
+
+/* Checkbox styling */
 .entry-checkbox {
-  margin-left: auto; /* Aligns checkbox to the far right within actions */
+  margin-left: auto;
 }
 
 /* Theme toggle button styles */

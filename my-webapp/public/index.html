@@ -145,12 +145,14 @@
           if (timeDifference <= 60) {
             const editButton = document.createElement('button');
             editButton.className = 'edit-btn';
-            editButton.textContent = 'Edit';
+            editButton.innerHTML = '✏️'; // Pencil icon for edit
+            editButton.title = 'Edit';
             editButton.onclick = () => editEntry(entryId, entry.text);
 
             const deleteButton = document.createElement('button');
             deleteButton.className = 'delete-btn';
-            deleteButton.textContent = 'Delete';
+            deleteButton.innerHTML = '🗑️'; // Trash icon for delete
+            deleteButton.title = 'Delete';
             deleteButton.onclick = () => deleteEntry(entryId);
 
             actionsDiv.appendChild(editButton);
