@@ -20,13 +20,14 @@
       
       <!-- Theme Toggle Button -->
       <div class="theme-toggle-container">
-        <button id="theme-toggle" class="theme-toggle">🌗</button> <!-- Added icon here -->
+        <button id="theme-toggle" class="theme-toggle">🌗</button>
       </div>
 
       <div class="tabs" id="tabs-container">
         <div id="primary-tab" class="tab active" data-journal="primary">Primary</div>
         <div id="work-tab" class="tab" data-journal="work">Work</div>
         <button id="add-journal-btn" class="add-journal-btn">+</button>
+        <button id="delete-journal-btn" class="delete-journal-btn">🗑️</button>
       </div>
       <input type="text" id="search-bar" class="search-bar" placeholder="Search by text or date (e.g., 'Monday, Oct 17')">
       <div id="user-info" style="margin-bottom: 20px;"></div>
@@ -39,77 +40,18 @@
     </div>
 
     <script>
-      let currentJournal = 'primary'; // Default journal
-
       document.addEventListener('DOMContentLoaded', function () {
         const db = firebase.firestore();
-        const themeToggleButton = document.getElementById('theme-toggle');
+        let currentJournal = 'primary';
 
-        // Load user theme from local storage
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme) {
-          document.body.classList.add(savedTheme);
-        }
-
-        // Theme toggle functionality
-        themeToggleButton.addEventListener('click', function () {
-          // Toggle dark theme class
-          document.body.classList.toggle('dark-theme');
-
-          // Check and save the current theme in local storage
-          if (document.body.classList.contains('dark-theme')) {
-            localStorage.setItem('theme', 'dark-theme');
-          } else {
-            localStorage.removeItem('theme'); // Default to light theme
-          }
-        });
-
-        const journalEntry = document.getElementById('journalEntry');
-        const saveBtn = document.getElementById('save-btn');
+        const deleteJournalBtn = document.getElementById('delete-journal-btn');
         const addJournalBtn = document.getElementById('add-journal-btn');
+        const saveBtn = document.getElementById('save-btn');
+        const journalEntry = document.getElementById('journalEntry');
         const entriesList = document.getElementById('entries');
-        const searchBar = document.getElementById('search-bar');
-
-        // Load user journals (tabs) from Firestore
-        function loadUserJournals() {
-          db.collection('userJournals').get()
-            .then(snapshot => {
-              snapshot.forEach(doc => {
-                const journalName = doc.data().name;
-                createJournalTab(journalName, false); // false because it's loading from DB, not a new tab
-              });
-              attachTabListeners(); // Reattach listeners after loading tabs
-            })
-            .catch(error => {
-              console.error('Error loading user journals:', error);
-            });
-        }
-
-        // Attach event listeners for tabs and dynamically created tabs
-        function attachTabListeners() {
-          document.querySelectorAll('.tab').forEach(tab => {
-            tab.addEventListener('click', (event) => {
-              if (!event.target.classList.contains('delete-icon')) {
-                switchJournal(tab.getAttribute('data-journal'));
-              }
-            });
-          });
-        }
-
-        function attachDeleteIconListener(deleteIcon, journalName) {
-          deleteIcon.addEventListener('click', (event) => {
-            event.stopPropagation(); // Prevent the event from bubbling to the parent tab
-            confirmDeleteJournal(journalName);
-          });
-        }
 
         function switchJournal(journal) {
           currentJournal = journal;
-
-          const journalChangeEvent = new CustomEvent('journalSwitch', { detail: { currentJournal } });
-          window.dispatchEvent(journalChangeEvent);
-
-          console.log(`Switched to journal: ${currentJournal}`);
 
           document.querySelectorAll('.tab').forEach(tab => {
             tab.classList.toggle('active', tab.getAttribute('data-journal') === journal);
@@ -118,14 +60,13 @@
           loadEntries();
         }
 
+        // Load entries with date grouping and edit/delete options
         function loadEntries() {
           const collectionName = (currentJournal === 'primary') ? 'journalEntries' : `${currentJournal}JournalEntries`;
 
-          console.log(`Loading entries from collection: ${collectionName}`);
-
           db.collection(collectionName).orderBy('timestamp', 'desc').get()
             .then(snapshot => {
-              entriesList.innerHTML = '';  // Clear previous entries
+              entriesList.innerHTML = '';
               if (snapshot.empty) {
                 entriesList.innerHTML = '<li>No entries found for this journal.</li>';
                 return;
@@ -138,7 +79,8 @@
                 const entryDate = entry.timestamp.toDate();
                 const formattedDate = entryDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
 
-                if (previousDate !== formattedDate) {
+                // Add a date banner if the entry's date is different from the previous entry
+                if (formattedDate !== previousDate) {
                   const dateBanner = document.createElement('li');
                   dateBanner.className = 'entry-day';
                   dateBanner.textContent = formattedDate;
@@ -156,7 +98,6 @@
                 `;
 
                 addEditDeleteButtons(entryDate, li, doc.id, entry);
-
                 entriesList.appendChild(li);
               });
             })
@@ -166,9 +107,10 @@
             });
         }
 
+        // Add edit and delete buttons for recent entries (within 60 minutes)
         function addEditDeleteButtons(entryDate, li, entryId, entry) {
           const now = new Date();
-          const timeDifference = (now - entryDate) / (1000 * 60); // Time difference in minutes
+          const timeDifference = (now - entryDate) / (1000 * 60);
           if (timeDifference <= 60) {
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'actions';
@@ -189,37 +131,28 @@
           }
         }
 
+        // Edit an entry
         function editEntry(entryId, currentText) {
           const collectionName = (currentJournal === 'primary') ? 'journalEntries' : `${currentJournal}JournalEntries`;
           const newText = prompt('Edit your entry:', currentText);
           if (newText !== null && newText.trim() !== '') {
-            db.collection(collectionName).doc(entryId).update({
-              text: newText
-            })
-            .then(() => {
-              console.log('Entry updated!');
-              loadEntries();
-            })
-            .catch(error => {
-              console.error('Error updating entry:', error);
-            });
+            db.collection(collectionName).doc(entryId).update({ text: newText })
+              .then(() => loadEntries())
+              .catch(error => console.error('Error updating entry:', error));
           }
         }
 
+        // Delete an entry
         function deleteEntry(entryId) {
           const collectionName = (currentJournal === 'primary') ? 'journalEntries' : `${currentJournal}JournalEntries`;
           if (confirm('Are you sure you want to delete this entry?')) {
             db.collection(collectionName).doc(entryId).delete()
-            .then(() => {
-              console.log('Entry deleted!');
-              loadEntries();
-            })
-            .catch(error => {
-              console.error('Error deleting entry:', error);
-            });
+              .then(() => loadEntries())
+              .catch(error => console.error('Error deleting entry:', error));
           }
         }
 
+        // Save a new entry with timestamp
         saveBtn.addEventListener('click', () => {
           const text = journalEntry.value.trim();
           if (text === '') {
@@ -235,85 +168,90 @@
               journalEntry.value = '';
               loadEntries();
             })
-            .catch(error => {
-              console.error('Error saving entry:', error);
+            .catch(error => console.error('Error saving entry:', error));
+        });
+
+        // Load existing journals and tabs
+        function loadUserJournals() {
+          db.collection('userJournals').get().then(snapshot => {
+            snapshot.forEach(doc => {
+              const journalName = doc.data().name;
+              createJournalTab(journalName);
             });
-        });
+            attachTabListeners();
+          });
+        }
 
-        addJournalBtn.addEventListener('click', () => {
-          const newJournalName = prompt('Enter a name for the new journal:');
-          if (newJournalName) {
-            createJournalTab(newJournalName, true);
-            switchJournal(newJournalName);
-
-            db.collection('userJournals').doc(newJournalName).set({ name: newJournalName })
-              .then(() => {
-                console.log(`New journal ${newJournalName} saved to Firestore.`);
-              })
-              .catch(error => {
-                console.error('Error saving new journal:', error);
-              });
-          }
-        });
-
-        function createJournalTab(journalName, isNew) {
+        // Create and attach new journal tabs
+        function createJournalTab(journalName) {
           const tab = document.createElement('div');
           tab.classList.add('tab');
           tab.textContent = journalName;
           tab.setAttribute('data-journal', journalName);
 
-          if (journalName !== 'primary' && journalName !== 'work') {
-            const deleteIcon = document.createElement('span');
-            deleteIcon.classList.add('delete-icon');
-            deleteIcon.textContent = '🗑️';
-            tab.appendChild(deleteIcon);
-            attachDeleteIconListener(deleteIcon, journalName);
-          }
-
-          tab.addEventListener('click', (event) => {
-            if (!event.target.classList.contains('delete-icon')) {
-              switchJournal(journalName);
-            }
-          });
-
           addJournalBtn.insertAdjacentElement('beforebegin', tab);
-
-          if (isNew) {
-            attachTabListeners();
-          }
         }
 
-        function confirmDeleteJournal(journalName) {
-          if (confirm(`Are you sure you want to delete the journal "${journalName}"?`)) {
-            const journalCollection = `${journalName}JournalEntries`;
+        function attachTabListeners() {
+          document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => switchJournal(tab.getAttribute('data-journal')));
+          });
+        }
+
+        // Add and delete journal handling
+        addJournalBtn.addEventListener('click', () => {
+          const newJournalName = prompt('Enter a name for the new journal:');
+          if (newJournalName) {
+            createJournalTab(newJournalName);
+            attachTabListeners();
+            switchJournal(newJournalName);
+
+            db.collection('userJournals').doc(newJournalName).set({ name: newJournalName })
+              .then(() => console.log(`New journal ${newJournalName} saved to Firestore.`))
+              .catch(error => console.error('Error saving new journal:', error));
+          }
+        });
+
+        deleteJournalBtn.addEventListener('click', function () {
+          if (currentJournal === 'primary' || currentJournal === 'work') {
+            alert(`${currentJournal.charAt(0).toUpperCase() + currentJournal.slice(1)} journal cannot be deleted.`);
+            return;
+          }
+
+          if (confirm(`Are you sure you want to delete the "${currentJournal}" journal?`)) {
+            const journalCollection = `${currentJournal}JournalEntries`;
+
             db.collection(journalCollection).get().then(snapshot => {
-              snapshot.forEach(doc => {
-                db.collection(journalCollection).doc(doc.id).delete()
-                  .then(() => console.log(`Deleted entry ${doc.id} from ${journalCollection}`))
-                  .catch(error => console.error(`Error deleting entry ${doc.id}:`, error));
-              });
+              snapshot.forEach(doc => db.collection(journalCollection).doc(doc.id).delete());
 
-              db.collection('userJournals').doc(journalName).delete()
+              db.collection('userJournals').doc(currentJournal).delete()
                 .then(() => {
-                  console.log(`Deleted journal ${journalName} from Firestore`);
-
-                  const tab = document.querySelector(`.tab[data-journal='${journalName}']`);
-                  if (tab) {
-                    tab.remove();
-                  }
-
+                  document.querySelector(`.tab[data-journal='${currentJournal}']`).remove();
                   switchJournal('primary');
                 })
-                .catch(error => {
-                  console.error(`Error deleting journal ${journalName}:`, error);
-                });
+                .catch(error => console.error(`Error deleting journal ${currentJournal}:`, error));
             });
           }
-        }
+        });
 
         loadUserJournals();
-        attachTabListeners();
-        loadEntries();
+        switchJournal('primary'); // Initialize with primary journal
+
+        // Theme toggle functionality
+        const themeToggleButton = document.getElementById('theme-toggle');
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+          document.body.classList.add(savedTheme);
+        }
+
+        themeToggleButton.addEventListener('click', function () {
+          document.body.classList.toggle('dark-theme');
+          if (document.body.classList.contains('dark-theme')) {
+            localStorage.setItem('theme', 'dark-theme');
+          } else {
+            localStorage.removeItem('theme');
+          }
+        });
       });
     </script>
 
