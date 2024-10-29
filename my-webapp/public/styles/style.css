@@ -20,38 +20,41 @@ body {
   max-width: 800px;
   margin: 0 auto;
   padding: 20px;
-  border-radius: 10px; /* Rounded corners for softer look */
+  border-radius: 10px;
 }
 
 /* Header */
 h1 {
-  text-align: left; /* Align to the left */
-  font-size: 2.5rem; /* Make the font larger */
-  font-weight: 700; /* Bold for emphasis */
+  text-align: left;
+  font-size: 2.5rem;
+  font-weight: 700;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, #B0B0B0, #F1F1F1, #B0B0B0); /* Sparkling gray gradient */
+  background: linear-gradient(135deg, #B0B0B0, #F1F1F1, #B0B0B0);
   background-clip: text;
-  -webkit-background-clip: text; /* For Safari */
-  color: transparent; /* Hide background color to make gradient visible */
+  -webkit-background-clip: text;
+  color: transparent;
   letter-spacing: 2px;
-  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.15); /* Light shadow for depth */
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
 }
 
-/* Tab styles */
+/* Container for tabs with responsive flex settings */
 .tabs {
   display: flex;
   align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
   margin-bottom: 10px;
 }
 
+/* Responsive tab styles */
 .tab {
-  position: relative;
-  padding: 10px 20px;
-  padding-right: 25px;
+  flex: 1;
+  padding: 10px 15px;
+  min-width: 80px;
+  text-align: center;
   background-color: #333;
   border-radius: 5px;
   cursor: pointer;
-  margin-right: 10px;
   color: white;
   transition: background-color 0.3s, color 0.3s;
 }
@@ -65,24 +68,9 @@ h1 {
   background-color: #555;
 }
 
-/* Delete icon inside each tab */
-.delete-icon {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  cursor: pointer;
-  font-size: 1rem;
-  color: #FF7043;
-  transition: color 0.3s;
-}
-
-.delete-icon:hover {
-  color: #FF5722;
-}
-
 /* Trash Button Styles */
 .delete-journal-btn {
+  flex-shrink: 0;
   width: 40px;
   height: 40px;
   background-color: #FFFFFF;
@@ -105,13 +93,6 @@ h1 {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-.delete-journal-btn:active {
-  background-color: #E0E0E0;
-  color: #111111;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-/* Dark Theme Trash Button */
 body.dark-theme .delete-journal-btn {
   background-color: #333333;
   color: #CCCCCC;
@@ -125,14 +106,9 @@ body.dark-theme .delete-journal-btn:hover {
   box-shadow: 0 4px 8px rgba(255, 255, 255, 0.15);
 }
 
-body.dark-theme .delete-journal-btn:active {
-  background-color: #555555;
-  color: #EEEEEE;
-  box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
-}
-
-/* PLUS and Upload Buttons with Light Gray Background and White Icon */
+/* PLUS Button Styles */
 .add-journal-btn {
+  flex-shrink: 0;
   font-size: 1.5rem;
   width: 40px;
   height: 40px;
@@ -151,7 +127,7 @@ body.dark-theme .delete-journal-btn:active {
   background-color: #B0B0B0;
 }
 
-/* Upload Button (Save Button) Inside Text Entry */
+/* Entry Text Area Container */
 .entry-container {
   position: relative;
   display: flex;
@@ -164,12 +140,12 @@ body.dark-theme .delete-journal-btn:active {
   border: 1px solid #ccc;
   border-radius: 5px;
   font-size: 1rem;
-  resize: none; /* Disable resizing for consistent layout */
+  resize: none;
 }
 
 .save-btn {
   position: absolute;
-  right: 10px; /* Align to the right within entry container */
+  right: 10px;
   font-size: 1.5rem;
   background-color: #D3D3D3;
   color: white;
@@ -196,7 +172,7 @@ body.dark-theme .delete-journal-btn:active {
   border-radius: 5px;
   font-size: 1rem;
   margin-bottom: 20px;
-  box-sizing: border-box; /* Ensures padding does not affect width */
+  box-sizing: border-box;
 }
 
 /* Logout button */
@@ -237,7 +213,6 @@ body.dark-theme .delete-journal-btn:active {
   color: #2C3E50;
 }
 
-/* Dark Theme Date Banner Styling */
 body.dark-theme .entry-day {
   color: #AEEB4B !important;
 }
