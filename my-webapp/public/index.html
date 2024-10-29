@@ -17,15 +17,15 @@
   <body>
     <div class="container">
       <h1>My Journal</h1>
-      
+
       <!-- Theme Toggle Button -->
       <div class="theme-toggle-container">
         <button id="theme-toggle" class="theme-toggle">🌗</button>
       </div>
 
       <div class="tabs" id="tabs-container">
-        <div id="primary-tab" class="tab active" data-journal="primary">Primary</div>
-        <div id="work-tab" class="tab" data-journal="work">Work</div>
+        <div id="primary-tab" class="tab active" data-journal="primary" draggable="true">Primary</div>
+        <div id="work-tab" class="tab" data-journal="work" draggable="true">Work</div>
         <button id="add-journal-btn" class="add-journal-btn">+</button>
         <button id="delete-journal-btn" class="delete-journal-btn">🗑️</button>
       </div>
@@ -145,13 +145,13 @@
           if (timeDifference <= 60) {
             const editButton = document.createElement('button');
             editButton.className = 'edit-btn';
-            editButton.innerHTML = '✏️'; // Pencil icon for edit
+            editButton.innerHTML = '✏️';
             editButton.title = 'Edit';
             editButton.onclick = () => editEntry(entryId, entry.text);
 
             const deleteButton = document.createElement('button');
             deleteButton.className = 'delete-btn';
-            deleteButton.innerHTML = '🗑️'; // Trash icon for delete
+            deleteButton.innerHTML = '🗑️';
             deleteButton.title = 'Delete';
             deleteButton.onclick = () => deleteEntry(entryId);
 
@@ -159,13 +159,12 @@
             actionsDiv.appendChild(deleteButton);
           }
 
-          // Create the checkbox
           const checkbox = document.createElement('input');
           checkbox.type = 'checkbox';
           checkbox.className = 'entry-checkbox';
 
-          actionsDiv.appendChild(checkbox); // Append the checkbox to the right of the actions
-          li.appendChild(actionsDiv); // Append actionsDiv to the list item
+          actionsDiv.appendChild(checkbox);
+          li.appendChild(actionsDiv);
         }
 
         function editEntry(entryId, currentText) {
@@ -221,14 +220,54 @@
           tab.classList.add('tab');
           tab.textContent = journalName;
           tab.setAttribute('data-journal', journalName);
+          tab.setAttribute('draggable', 'true');
 
           addJournalBtn.insertAdjacentElement('beforebegin', tab);
         }
+
+        function enableTabDragging() {
+          const tabsContainer = document.getElementById('tabs-container');
+          let draggedTab = null;
+
+          tabsContainer.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('dragstart', (event) => {
+              draggedTab = event.target;
+              event.dataTransfer.effectAllowed = 'move';
+              event.dataTransfer.setData('text/plain', event.target.id);
+            });
+
+            tab.addEventListener('dragover', (event) => {
+              event.preventDefault();
+              event.dataTransfer.dropEffect = 'move';
+            });
+
+            tab.addEventListener('drop', (event) => {
+              event.preventDefault();
+              if (draggedTab !== event.target) {
+                const draggedIndex = Array.from(tabsContainer.children).indexOf(draggedTab);
+                const targetIndex = Array.from(tabsContainer.children).indexOf(event.target);
+
+                if (draggedIndex < targetIndex) {
+                  tabsContainer.insertBefore(draggedTab, event.target.nextSibling);
+                } else {
+                  tabsContainer.insertBefore(draggedTab, event.target);
+                }
+              }
+            });
+
+            tab.addEventListener('dragend', () => {
+              draggedTab = null;
+            });
+          });
+        }
+
+        enableTabDragging();
 
         function attachTabListeners() {
           document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', () => switchJournal(tab.getAttribute('data-journal')));
           });
+          enableTabDragging();
         }
 
         addJournalBtn.addEventListener('click', () => {

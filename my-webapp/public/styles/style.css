@@ -312,3 +312,13 @@ body.dark-theme .timestamp {
 body.light-theme .container, body.dark-theme .container, body.colorful-dark-theme .container {
   transition: background-color 0.3s, color 0.3s;
 }
+
+/* Draggable tab cursor styles */
+.tab[draggable="true"] {
+  cursor: grab;
+}
+
+.tab[draggable="true"]:active {
+  cursor: grabbing;
+  opacity: 0.7;
+}
