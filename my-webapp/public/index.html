@@ -20,7 +20,12 @@
 
       <!-- Theme Toggle Button -->
       <div class="theme-toggle-container">
-        <button id="theme-toggle" class="theme-toggle">🌗</button>
+        <button id="theme-toggle" class="theme-toggle">☀️</button>
+      </div>
+
+      <div id="stats-bar" style="display:none;">
+        <div class="stat"><span class="stat-icon">📊</span><span class="stat-value" id="total-entries">0</span><span class="stat-label">entries</span></div>
+        <div class="stat"><span class="stat-icon">🔥</span><span class="stat-value" id="streak-count">0</span><span class="stat-label">day streak</span></div>
       </div>
 
       <div class="tabs" id="tabs-container">
@@ -29,22 +34,53 @@
         <button id="add-journal-btn" class="add-journal-btn">+</button>
         <button id="delete-journal-btn" class="delete-journal-btn">🗑️</button>
       </div>
-      <input type="text" id="search-bar" class="search-bar" placeholder="Search by text or date (e.g., 'Monday, Oct 17')">
+      <div class="search-row">
+        <input type="text" id="search-bar" class="search-bar" placeholder="Search entries...">
+        <input type="date" id="date-filter" class="date-filter">
+      </div>
       <div id="user-info" style="margin-bottom: 20px;"></div>
+      <button id="export-btn" class="export-btn" style="display: none;">Export</button>
       <button id="logout-btn" class="logout-btn" style="display: none;">Log Out</button>
       <div class="entry-container">
-        <textarea id="journalEntry" placeholder="Start typing your journal entry..."></textarea>
+        <textarea id="journalEntry" placeholder="Start typing your journal entry..." rows="4"></textarea>
         <button id="save-btn" class="save-btn"><span class="arrow">&#11014;</span></button>
       </div>
+      <div id="char-counter">0 characters</div>
       <ul id="entries" class="entry-list"></ul>
     </div>
 
     <script>
+      function showToast(message, type) {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+        const toast = document.createElement('div');
+        toast.className = `toast ${type || 'info'}`;
+        toast.textContent = message;
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+      }
+
+      function renderMarkdown(text) {
+        const escaped = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        return escaped
+          .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+          .replace(/`([^`]+)`/g, '<code>$1</code>')
+          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.+?)\*/g, '<em>$1</em>')
+          .replace(/^### (.+)$/gm, '<h4>$1</h4>')
+          .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+          .replace(/^# (.+)$/gm, '<h2>$1</h2>')
+          .replace(/^- (.+)$/gm, '<li>$1</li>')
+          .replace(/\n/g, '<br>');
+      }
+
       document.addEventListener('DOMContentLoaded', function () {
         const db = firebase.firestore();
         const auth = firebase.auth();
         let currentJournal = 'primary';
         let existingJournals = ['primary', 'work'];
+        let userThemeDoc;
+        let currentUserUid;
 
         const themeToggleButton = document.getElementById('theme-toggle');
         const deleteJournalBtn = document.getElementById('delete-journal-btn');
@@ -52,34 +88,71 @@
         const saveBtn = document.getElementById('save-btn');
         const journalEntry = document.getElementById('journalEntry');
         const entriesList = document.getElementById('entries');
+        const dateFilter = document.getElementById('date-filter');
+        const charCounter = document.getElementById('char-counter');
 
+        function autoResize() {
+          journalEntry.style.height = 'auto';
+          journalEntry.style.height = journalEntry.scrollHeight + 'px';
+        }
+
+        journalEntry.addEventListener('input', () => {
+          autoResize();
+          charCounter.textContent = `${journalEntry.value.length} characters`;
+        });
+
+        let authHandled = false;
         auth.onAuthStateChanged(user => {
+          if (authHandled) return;
+          authHandled = true;
           if (user) {
-            const userThemeDoc = db.collection('userPreferences').doc(user.uid);
+            currentUserUid = user.uid;
+            userThemeDoc = db.collection('userPreferences').doc(user.uid);
             userThemeDoc.get().then(doc => {
-              if (doc.exists && doc.data().theme) {
-                const savedTheme = doc.data().theme;
-                document.body.classList.add(savedTheme);
-              } else {
-                document.body.classList.add('light-theme');
-              }
+              const savedTheme = doc.exists && doc.data().theme ? doc.data().theme : 'light-theme';
+              document.body.classList.add(savedTheme);
+              themeToggleButton.textContent = savedTheme === 'dark-theme' ? '🌙' : '☀️';
             });
-            themeToggleButton.addEventListener('click', () => {
-              if (document.body.classList.contains('dark-theme')) {
-                document.body.classList.replace('dark-theme', 'light-theme');
-                userThemeDoc.set({ theme: 'light-theme' }, { merge: true });
-              } else {
-                document.body.classList.replace('light-theme', 'dark-theme');
-                userThemeDoc.set({ theme: 'dark-theme' }, { merge: true });
-              }
+            document.getElementById('stats-bar').style.display = 'flex';
+            document.getElementById('user-info').textContent = `Logged in as: ${user.email}`;
+            document.getElementById('logout-btn').style.display = 'inline-block';
+            document.getElementById('export-btn').style.display = 'inline-block';
+            loadUserJournals().then(() => {
+              restoreTabOrder();
+              switchJournal('primary');
             });
           } else {
             document.body.classList.add('light-theme');
+            window.location.href = 'login.html';
           }
+        });
+
+        themeToggleButton.addEventListener('click', () => {
+          if (!userThemeDoc) return;
+          themeToggleButton.classList.add('spin');
+          setTimeout(() => themeToggleButton.classList.remove('spin'), 500);
+          if (document.body.classList.contains('dark-theme')) {
+            document.body.classList.replace('dark-theme', 'light-theme');
+            themeToggleButton.textContent = '☀️';
+            userThemeDoc.set({ theme: 'light-theme' }, { merge: true });
+          } else {
+            document.body.classList.replace('light-theme', 'dark-theme');
+            themeToggleButton.textContent = '🌙';
+            userThemeDoc.set({ theme: 'dark-theme' }, { merge: true });
+          }
+        });
+
+        document.getElementById('export-btn').addEventListener('click', exportEntries);
+
+        document.getElementById('logout-btn').addEventListener('click', () => {
+          auth.signOut().then(() => {
+            window.location.href = 'login.html';
+          });
         });
 
         function switchJournal(journal) {
           currentJournal = journal;
+          dateFilter.value = '';
 
           document.querySelectorAll('.tab').forEach(tab => {
             tab.classList.toggle('active', tab.getAttribute('data-journal') === journal);
@@ -97,16 +170,57 @@
           db.collection(collectionName).orderBy('timestamp', 'desc').get()
             .then(snapshot => {
               entriesList.innerHTML = '';
-              if (snapshot.empty) {
-                entriesList.innerHTML = '<li>No entries found for this journal.</li>';
-                return;
-              }
 
-              let previousDate = null;
+              let entryCount = 0;
+              const uniqueDates = new Set();
+              const filterDate = dateFilter.value;
 
               snapshot.forEach(doc => {
                 const entry = doc.data();
                 const entryDate = entry.timestamp.toDate();
+                const dateStr = entryDate.toISOString().split('T')[0];
+                if (!filterDate) uniqueDates.add(dateStr);
+                entryCount++;
+              });
+
+              let streak = 0;
+              if (!filterDate) {
+                const today = new Date();
+                const sorted = [...uniqueDates].sort().reverse();
+                for (let i = 0; i < sorted.length; i++) {
+                  const expected = new Date(today);
+                  expected.setDate(expected.getDate() - i);
+                  const expectedStr = expected.toISOString().split('T')[0];
+                  if (sorted[i] === expectedStr) {
+                    streak++;
+                  } else {
+                    break;
+                  }
+                }
+              }
+
+              document.getElementById('total-entries').textContent = entryCount;
+              document.getElementById('streak-count').textContent = streak;
+
+              if (snapshot.empty) {
+                entriesList.innerHTML = '<li class="empty-state"><div class="empty-icon">📝</div><p>No entries yet. Start writing above!</p></li>';
+                return;
+              }
+
+              const docs = [];
+              snapshot.forEach(doc => docs.push({ id: doc.id, data: doc.data() }));
+              docs.sort((a, b) => {
+                if (a.data.pinned && !b.data.pinned) return -1;
+                if (!a.data.pinned && b.data.pinned) return 1;
+                return (b.data.timestamp?.toDate() || 0) - (a.data.timestamp?.toDate() || 0);
+              });
+
+              let previousDate = null;
+
+              docs.forEach(({ id, data: entry }) => {
+                const entryDate = entry.timestamp.toDate();
+                const entryDateStr = entryDate.toISOString().split('T')[0];
+                if (filterDate && entryDateStr !== filterDate) return;
                 const formattedDate = entryDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
 
                 if (formattedDate !== previousDate) {
@@ -120,13 +234,14 @@
                 const timeString = `${entryDate.getHours().toString().padStart(2, '0')}:${entryDate.getMinutes().toString().padStart(2, '0')}`;
 
                 const li = document.createElement('li');
-                li.className = 'entry';
+                li.className = `entry${entry.pinned ? ' pinned' : ''}`;
                 li.innerHTML = `
+                  <div class="entry-pin">${entry.pinned ? '📍' : ''}</div>
                   <div class="timestamp">${timeString}</div>
-                  <div class="entry-text">${entry.text}</div>
+                  <div class="entry-text">${renderMarkdown(entry.text)}</div>
                 `;
 
-                addEditDeleteButtons(entryDate, li, doc.id, entry);
+                addEditDeleteButtons(entryDate, li, id, entry);
                 entriesList.appendChild(li);
               });
             })
@@ -142,12 +257,19 @@
           const actionsDiv = document.createElement('div');
           actionsDiv.className = 'actions';
 
+          const pinButton = document.createElement('button');
+          pinButton.className = 'pin-btn';
+          pinButton.innerHTML = entry.pinned ? '📍' : '📌';
+          pinButton.title = entry.pinned ? 'Unpin' : 'Pin to top';
+          pinButton.onclick = () => togglePin(entryId, !entry.pinned);
+          actionsDiv.appendChild(pinButton);
+
           if (timeDifference <= 60) {
             const editButton = document.createElement('button');
             editButton.className = 'edit-btn';
             editButton.innerHTML = '✏️';
             editButton.title = 'Edit';
-            editButton.onclick = () => editEntry(entryId, entry.text);
+            editButton.onclick = () => editEntry(entryId, entry.text, li);
 
             const deleteButton = document.createElement('button');
             deleteButton.className = 'delete-btn';
@@ -159,60 +281,147 @@
             actionsDiv.appendChild(deleteButton);
           }
 
-          const checkbox = document.createElement('input');
-          checkbox.type = 'checkbox';
-          checkbox.className = 'entry-checkbox';
-
-          actionsDiv.appendChild(checkbox);
           li.appendChild(actionsDiv);
         }
 
-        function editEntry(entryId, currentText) {
-          const collectionName = (currentJournal === 'primary') ? 'journalEntries' : `${currentJournal}JournalEntries`;
-          const newText = prompt('Edit your entry:', currentText);
-          if (newText !== null && newText.trim() !== '') {
+        function editEntry(entryId, currentText, li) {
+          const textDiv = li.querySelector('.entry-text');
+          if (!textDiv || li.querySelector('.edit-textarea')) return;
+
+          const textarea = document.createElement('textarea');
+          textarea.className = 'edit-textarea';
+          textarea.value = currentText;
+
+          const saveBtn = document.createElement('button');
+          saveBtn.className = 'edit-save-btn';
+          saveBtn.textContent = 'Save';
+
+          const cancelBtn = document.createElement('button');
+          cancelBtn.className = 'edit-cancel-btn';
+          cancelBtn.textContent = 'Cancel';
+
+          const actionsDiv = document.createElement('div');
+          actionsDiv.className = 'edit-actions';
+          actionsDiv.appendChild(saveBtn);
+          actionsDiv.appendChild(cancelBtn);
+
+          textDiv.classList.add('hidden');
+          textDiv.insertAdjacentElement('afterend', textarea);
+          textarea.insertAdjacentElement('afterend', actionsDiv);
+          textarea.focus();
+
+          const cleanup = () => {
+            textarea.remove();
+            actionsDiv.remove();
+            textDiv.classList.remove('hidden');
+          };
+
+          saveBtn.onclick = () => {
+            const newText = textarea.value.trim();
+            if (!newText) { showToast('Entry cannot be empty.', 'error'); return; }
+            const collectionName = (currentJournal === 'primary') ? 'journalEntries' : `${currentJournal}JournalEntries`;
             db.collection(collectionName).doc(entryId).update({ text: newText })
-              .then(() => loadEntries())
-              .catch(error => console.error('Error updating entry:', error));
-          }
+              .then(() => {
+                showToast('Entry updated.', 'success');
+                loadEntries();
+              })
+              .catch(error => {
+                console.error('Error updating entry:', error);
+                showToast('Failed to update entry.', 'error');
+                cleanup();
+              });
+          };
+
+          cancelBtn.onclick = cleanup;
         }
 
         function deleteEntry(entryId) {
           const collectionName = (currentJournal === 'primary') ? 'journalEntries' : `${currentJournal}JournalEntries`;
           if (confirm('Are you sure you want to delete this entry?')) {
             db.collection(collectionName).doc(entryId).delete()
-              .then(() => loadEntries())
-              .catch(error => console.error('Error deleting entry:', error));
+              .then(() => {
+                showToast('Entry deleted.', 'info');
+                loadEntries();
+              })
+              .catch(error => {
+                console.error('Error deleting entry:', error);
+                showToast('Failed to delete entry.', 'error');
+              });
           }
+        }
+
+        function togglePin(entryId, pinned) {
+          const collectionName = (currentJournal === 'primary') ? 'journalEntries' : `${currentJournal}JournalEntries`;
+          db.collection(collectionName).doc(entryId).update({ pinned })
+            .then(() => {
+              showToast(pinned ? 'Entry pinned to top.' : 'Entry unpinned.', 'info');
+              loadEntries();
+            })
+            .catch(error => {
+              console.error('Error toggling pin:', error);
+              showToast('Failed to update pin.', 'error');
+            });
+        }
+
+        function exportEntries() {
+          const collectionName = (currentJournal === 'primary') ? 'journalEntries' : `${currentJournal}JournalEntries`;
+          db.collection(collectionName).orderBy('timestamp', 'desc').get()
+            .then(snapshot => {
+              let text = `Journal: ${currentJournal}\nExported: ${new Date().toLocaleDateString()}\n${'='.repeat(40)}\n\n`;
+              snapshot.forEach(doc => {
+                const entry = doc.data();
+                const date = entry.timestamp.toDate().toLocaleString();
+                text += `[${date}]${entry.pinned ? ' 📌' : ''}\n${entry.text}\n${'-'.repeat(40)}\n\n`;
+              });
+              const blob = new Blob([text], { type: 'text/plain' });
+              const a = document.createElement('a');
+              a.href = URL.createObjectURL(blob);
+              a.download = `${currentJournal}-journal.txt`;
+              a.click();
+              URL.revokeObjectURL(a.href);
+              showToast('Entries exported!', 'success');
+            })
+            .catch(error => {
+              console.error('Error exporting entries:', error);
+              showToast('Failed to export entries.', 'error');
+            });
         }
 
         saveBtn.addEventListener('click', () => {
           const text = journalEntry.value.trim();
           if (text === '') {
-            alert('Entry cannot be empty.');
+            showToast('Entry cannot be empty.', 'error');
             return;
           }
 
+          saveBtn.classList.add('spinning');
           const timestamp = new Date();
           const collectionName = (currentJournal === 'primary') ? 'journalEntries' : `${currentJournal}JournalEntries`;
 
-          db.collection(collectionName).add({ text, timestamp })
+          const textToSave = journalEntry.value;
+          db.collection(collectionName).add({ text, timestamp, userId: currentUserUid })
             .then(() => {
+              saveBtn.classList.remove('spinning');
               journalEntry.value = '';
+              showToast('Entry saved!', 'success');
               loadEntries();
             })
-            .catch(error => console.error('Error saving entry:', error));
+            .catch(error => {
+              saveBtn.classList.remove('spinning');
+              console.error('Error saving entry:', error);
+              journalEntry.value = textToSave;
+              showToast('Failed to save entry.', 'error');
+            });
         });
 
         function loadUserJournals() {
-          db.collection('userJournals').get().then(snapshot => {
+          return db.collection('userJournals').get().then(snapshot => {
             snapshot.forEach(doc => {
               const journalName = doc.data().name;
               createJournalTab(journalName);
               existingJournals.push(journalName.toLowerCase());
             });
-            attachTabListeners();
-          });
+          }).catch(error => console.error('Error loading journals:', error));
         }
 
         function createJournalTab(journalName) {
@@ -229,69 +438,106 @@
           const tabsContainer = document.getElementById('tabs-container');
           let draggedTab = null;
 
-          tabsContainer.querySelectorAll('.tab').forEach(tab => {
-            tab.addEventListener('dragstart', (event) => {
-              draggedTab = event.target;
-              event.dataTransfer.effectAllowed = 'move';
-              event.dataTransfer.setData('text/plain', event.target.id);
-            });
-
-            tab.addEventListener('dragover', (event) => {
-              event.preventDefault();
-              event.dataTransfer.dropEffect = 'move';
-            });
-
-            tab.addEventListener('drop', (event) => {
-              event.preventDefault();
-              if (draggedTab !== event.target) {
-                const draggedIndex = Array.from(tabsContainer.children).indexOf(draggedTab);
-                const targetIndex = Array.from(tabsContainer.children).indexOf(event.target);
-
-                if (draggedIndex < targetIndex) {
-                  tabsContainer.insertBefore(draggedTab, event.target.nextSibling);
-                } else {
-                  tabsContainer.insertBefore(draggedTab, event.target);
-                }
-              }
-            });
-
-            tab.addEventListener('dragend', () => {
-              draggedTab = null;
-            });
+          tabsContainer.addEventListener('dragstart', (event) => {
+            const tab = event.target.closest('.tab');
+            if (!tab) return;
+            draggedTab = tab;
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', tab.id);
           });
+
+          tabsContainer.addEventListener('dragover', (event) => {
+            const tab = event.target.closest('.tab');
+            if (!tab) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+          });
+
+          function saveTabOrder() {
+            const order = Array.from(tabsContainer.querySelectorAll('.tab'))
+              .map(t => t.getAttribute('data-journal'));
+            if (userThemeDoc) {
+              userThemeDoc.set({ tabOrder: order }, { merge: true });
+            }
+          }
+
+          tabsContainer.addEventListener('drop', (event) => {
+            const tab = event.target.closest('.tab');
+            if (!tab || !draggedTab || draggedTab === tab) return;
+            event.preventDefault();
+            const draggedIndex = Array.from(tabsContainer.children).indexOf(draggedTab);
+            const targetIndex = Array.from(tabsContainer.children).indexOf(tab);
+            if (draggedIndex < targetIndex) {
+              tabsContainer.insertBefore(draggedTab, tab.nextSibling);
+            } else {
+              tabsContainer.insertBefore(draggedTab, tab);
+            }
+            saveTabOrder();
+          });
+
+          tabsContainer.addEventListener('dragend', () => {
+            draggedTab = null;
+          });
+        }
+
+        function restoreTabOrder() {
+          userThemeDoc.get().then(doc => {
+            if (doc.exists && doc.data().tabOrder) {
+              const order = doc.data().tabOrder;
+              const tabsContainer = document.getElementById('tabs-container');
+              order.reverse().forEach(name => {
+                const tab = tabsContainer.querySelector(`.tab[data-journal="${name}"]`);
+                if (tab) {
+                  tabsContainer.insertBefore(tab, tabsContainer.firstChild);
+                }
+              });
+            }
+          }).catch(() => {});
         }
 
         enableTabDragging();
 
-        function attachTabListeners() {
-          document.querySelectorAll('.tab').forEach(tab => {
-            tab.addEventListener('click', () => switchJournal(tab.getAttribute('data-journal')));
-          });
-          enableTabDragging();
-        }
+        window.addEventListener('searchCleared', () => {
+          if (entriesList) loadEntries();
+        });
+
+        dateFilter.addEventListener('change', () => {
+          const searchBar = document.getElementById('search-bar');
+          if (searchBar) searchBar.value = '';
+          loadEntries();
+        });
+
+        document.getElementById('tabs-container').addEventListener('click', (event) => {
+          const tab = event.target.closest('.tab');
+          if (tab) {
+            switchJournal(tab.getAttribute('data-journal'));
+          }
+        });
 
         addJournalBtn.addEventListener('click', () => {
           const newJournalName = prompt('Enter a name for the new journal:');
           if (!newJournalName) return;
 
           if (existingJournals.includes(newJournalName.toLowerCase())) {
-            alert('A journal with this name already exists. Please choose a different name.');
+            showToast('A journal with this name already exists.', 'error');
             return;
           }
 
           createJournalTab(newJournalName);
-          attachTabListeners();
           switchJournal(newJournalName);
           existingJournals.push(newJournalName.toLowerCase());
 
-          db.collection('userJournals').doc(newJournalName).set({ name: newJournalName })
-            .then(() => console.log(`New journal ${newJournalName} saved to Firestore.`))
-            .catch(error => console.error('Error saving new journal:', error));
+          db.collection('userJournals').doc(newJournalName).set({ name: newJournalName, userId: currentUserUid })
+            .then(() => showToast(`Journal "${newJournalName}" created!`, 'success'))
+            .catch(error => {
+              console.error('Error saving new journal:', error);
+              showToast('Failed to create journal.', 'error');
+            });
         });
 
         deleteJournalBtn.addEventListener('click', function () {
           if (currentJournal === 'primary' || currentJournal === 'work') {
-            alert(`${currentJournal.charAt(0).toUpperCase() + currentJournal.slice(1)} journal cannot be deleted.`);
+            showToast(`${currentJournal.charAt(0).toUpperCase() + currentJournal.slice(1)} journal cannot be deleted.`, 'error');
             return;
           }
 
@@ -299,25 +545,27 @@
             const journalCollection = `${currentJournal}JournalEntries`;
 
             db.collection(journalCollection).get().then(snapshot => {
-              snapshot.forEach(doc => db.collection(journalCollection).doc(doc.id).delete());
-
-              db.collection('userJournals').doc(currentJournal).delete()
-                .then(() => {
-                  document.querySelector(`.tab[data-journal='${currentJournal}']`).remove();
-                  existingJournals = existingJournals.filter(name => name !== currentJournal.toLowerCase());
-                  switchJournal('primary');
-                })
-                .catch(error => console.error(`Error deleting journal ${currentJournal}:`, error));
+              const batch = db.batch();
+              snapshot.forEach(doc => batch.delete(doc.ref));
+              batch.delete(db.collection('userJournals').doc(currentJournal));
+              batch.commit().then(() => {
+                document.querySelector(`.tab[data-journal='${currentJournal}']`).remove();
+                existingJournals = existingJournals.filter(name => name !== currentJournal.toLowerCase());
+                showToast(`Journal "${currentJournal}" deleted.`, 'info');
+                switchJournal('primary');
+              }).catch(error => {
+                console.error(`Error deleting journal ${currentJournal}:`, error);
+                showToast('Failed to delete journal.', 'error');
+              });
             });
           }
         });
 
-        loadUserJournals();
-        switchJournal('primary');
       });
     </script>
 
-    <!-- Link to search functionality -->
+    <div id="toast-container"></div>
+
     <script src="js/search_functionality.js" defer></script>
   </body>
 </html>

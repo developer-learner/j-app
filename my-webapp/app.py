@@ -1,10 +1,10 @@
-from flask import Flask, render_template
+from flask import Flask, send_from_directory
 
-app = Flask(__name__, static_folder='public', template_folder='templates')
+app = Flask(__name__, static_folder='public')
 
 @app.route('/')
 def home():
-    return render_template("index.html")  # Flask version for dynamic pages
+    return send_from_directory('public', 'index.html')
 
 if __name__ == "__main__":
     app.run(debug=True)

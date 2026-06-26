@@ -20,6 +20,11 @@
       <input type="password" id="password" placeholder="Password" required>
       <button id="login-btn" class="btn">Login</button>
       <p id="error-message" style="color: red; display: none;"></p>
+      <div id="signup-form" style="display: none;">
+        <input type="email" id="signup-email" placeholder="Email" required>
+        <input type="password" id="signup-password" placeholder="Password" required>
+        <button id="signup-btn" class="btn">Sign Up</button>
+      </div>
       <span id="signup-link" class="link">Don't have an account? Sign Up</span>
       <span id="reset-link" class="link">Forgot your password?</span>
     </div>
@@ -33,6 +38,10 @@
         const errorMessage = document.getElementById('error-message');
         const signupLink = document.getElementById('signup-link');
         const resetLink = document.getElementById('reset-link');
+        const signupForm = document.getElementById('signup-form');
+        const signupBtn = document.getElementById('signup-btn');
+        const signupEmail = document.getElementById('signup-email');
+        const signupPassword = document.getElementById('signup-password');
 
         // Login function
         loginBtn.onclick = function() {
@@ -41,8 +50,7 @@
 
           auth.signInWithEmailAndPassword(email, password)
             .then(userCredential => {
-              // Successful login
-              window.location.href = 'index.html';  // Redirect to the main journal page
+              window.location.href = 'index.html';
             })
             .catch(error => {
               console.error('Error logging in:', error);
@@ -51,23 +59,32 @@
             });
         };
 
-        // Sign up function
+        // Toggle signup form visibility
         signupLink.onclick = function() {
-          const email = prompt('Enter your email to sign up:');
-          const password = prompt('Enter a password:');
+          signupForm.style.display = signupForm.style.display === 'none' ? 'block' : 'none';
+          errorMessage.style.display = 'none';
+        };
 
-          if (email && password) {
-            auth.createUserWithEmailAndPassword(email, password)
-              .then(userCredential => {
-                // Successful sign up
-                window.location.href = 'index.html';  // Redirect to the main journal page
-              })
-              .catch(error => {
-                console.error('Error signing up:', error);
-                errorMessage.textContent = error.message;
-                errorMessage.style.display = 'block';
-              });
+        // Sign up function
+        signupBtn.onclick = function() {
+          const email = signupEmail.value;
+          const password = signupPassword.value;
+
+          if (!email || !password) {
+            errorMessage.textContent = 'Please fill in both email and password.';
+            errorMessage.style.display = 'block';
+            return;
           }
+
+          auth.createUserWithEmailAndPassword(email, password)
+            .then(userCredential => {
+              window.location.href = 'index.html';
+            })
+            .catch(error => {
+              console.error('Error signing up:', error);
+              errorMessage.textContent = error.message;
+              errorMessage.style.display = 'block';
+            });
         };
 
         // Password reset function
