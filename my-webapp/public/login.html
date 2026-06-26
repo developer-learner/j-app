@@ -16,17 +16,29 @@
   <body>
     <div class="container">
       <h2>Login to Your Journal</h2>
-      <input type="email" id="email" placeholder="Email" required>
-      <input type="password" id="password" placeholder="Password" required>
-      <button id="login-btn" class="btn">Login</button>
-      <p id="error-message" style="color: red; display: none;"></p>
-      <div id="signup-form" style="display: none;">
-        <input type="email" id="signup-email" placeholder="Email" required>
-        <input type="password" id="signup-password" placeholder="Password" required>
-        <button id="signup-btn" class="btn">Sign Up</button>
+      <div class="auth-form">
+        <input type="email" id="email" class="auth-input" placeholder="Email" required autofocus>
+        <input type="password" id="password" class="auth-input" placeholder="Password" required>
+        <button id="login-btn" class="btn">Login</button>
+        <p id="error-message" style="color: red; display: none;"></p>
+
+        <div id="signup-form" style="display: none;">
+          <input type="email" id="signup-email" class="auth-input" placeholder="Email" required>
+          <input type="password" id="signup-password" class="auth-input" placeholder="Password" required>
+          <button id="signup-btn" class="btn">Sign Up</button>
+        </div>
+
+        <div id="reset-form" style="display: none;">
+          <input type="email" id="reset-email" class="auth-input" placeholder="Enter your email" required>
+          <button id="send-reset-btn" class="btn" style="background:#FF7043;">Send Reset Link</button>
+          <button id="cancel-reset-btn" class="btn cancel-btn">Cancel</button>
+        </div>
+
+        <div class="auth-links">
+          <span id="signup-link" class="link">Don't have an account? Sign Up</span>
+          <span id="reset-link" class="link">Forgot your password?</span>
+        </div>
       </div>
-      <span id="signup-link" class="link">Don't have an account? Sign Up</span>
-      <span id="reset-link" class="link">Forgot your password?</span>
     </div>
 
     <script>
@@ -42,11 +54,39 @@
         const signupBtn = document.getElementById('signup-btn');
         const signupEmail = document.getElementById('signup-email');
         const signupPassword = document.getElementById('signup-password');
+        const resetForm = document.getElementById('reset-form');
+        const resetEmail = document.getElementById('reset-email');
+        const sendResetBtn = document.getElementById('send-reset-btn');
+        const cancelResetBtn = document.getElementById('cancel-reset-btn');
+
+        function setLoading(btn, loading, text, originalText) {
+          if (loading) {
+            btn.setAttribute('data-text', btn.textContent);
+            btn.disabled = true;
+            btn.textContent = text || 'Loading...';
+          } else {
+            btn.disabled = false;
+            btn.textContent = originalText || btn.getAttribute('data-text') || text;
+          }
+        }
+
+        function showError(msg) {
+          errorMessage.textContent = msg;
+          errorMessage.style.display = 'block';
+        }
+
+        function hideError() {
+          errorMessage.style.display = 'none';
+        }
 
         // Login function
         loginBtn.onclick = function() {
           const email = emailInput.value;
           const password = passwordInput.value;
+
+          if (!email || !password) { showError('Please fill in both fields.'); return; }
+          hideError();
+          setLoading(loginBtn, true, 'Logging in...');
 
           auth.signInWithEmailAndPassword(email, password)
             .then(userCredential => {
@@ -54,15 +94,24 @@
             })
             .catch(error => {
               console.error('Error logging in:', error);
-              errorMessage.textContent = error.message;
-              errorMessage.style.display = 'block';
+              showError(error.message);
+              setLoading(loginBtn, false, '', 'Login');
             });
         };
 
+        function handleLoginKey(e) {
+          if (e.key === 'Enter') loginBtn.click();
+        }
+        emailInput.addEventListener('keydown', handleLoginKey);
+        passwordInput.addEventListener('keydown', handleLoginKey);
+
         // Toggle signup form visibility
         signupLink.onclick = function() {
-          signupForm.style.display = signupForm.style.display === 'none' ? 'block' : 'none';
-          errorMessage.style.display = 'none';
+          const hidden = signupForm.style.display === 'none';
+          signupForm.style.display = hidden ? 'block' : 'none';
+          resetForm.style.display = 'none';
+          hideError();
+          if (hidden) setTimeout(() => signupEmail.focus(), 100);
         };
 
         // Sign up function
@@ -70,11 +119,9 @@
           const email = signupEmail.value;
           const password = signupPassword.value;
 
-          if (!email || !password) {
-            errorMessage.textContent = 'Please fill in both email and password.';
-            errorMessage.style.display = 'block';
-            return;
-          }
+          if (!email || !password) { showError('Please fill in both fields.'); return; }
+          hideError();
+          setLoading(signupBtn, true, 'Signing up...');
 
           auth.createUserWithEmailAndPassword(email, password)
             .then(userCredential => {
@@ -82,27 +129,58 @@
             })
             .catch(error => {
               console.error('Error signing up:', error);
-              errorMessage.textContent = error.message;
-              errorMessage.style.display = 'block';
+              showError(error.message);
+              setLoading(signupBtn, false, '', 'Sign Up');
             });
         };
 
-        // Password reset function
-        resetLink.onclick = function() {
-          const email = prompt('Enter your email to reset your password:');
+        function handleSignupKey(e) {
+          if (e.key === 'Enter') signupBtn.click();
+        }
+        signupEmail.addEventListener('keydown', handleSignupKey);
+        signupPassword.addEventListener('keydown', handleSignupKey);
 
-          if (email) {
-            auth.sendPasswordResetEmail(email)
-              .then(() => {
-                alert('Password reset email sent!');
-              })
-              .catch(error => {
-                console.error('Error sending password reset email:', error);
-                errorMessage.textContent = error.message;
-                errorMessage.style.display = 'block';
-              });
-          }
+        // Password reset
+        resetLink.onclick = function() {
+          resetForm.style.display = 'block';
+          signupForm.style.display = 'none';
+          hideError();
+          resetEmail.value = emailInput.value;
+          setTimeout(() => resetEmail.focus(), 100);
         };
+
+        sendResetBtn.onclick = function() {
+          const email = resetEmail.value;
+          if (!email) { showError('Please enter your email.'); return; }
+          hideError();
+          setLoading(sendResetBtn, true, 'Sending...');
+
+          auth.sendPasswordResetEmail(email)
+            .then(() => {
+              setLoading(sendResetBtn, false, 'Send Reset Link');
+              resetForm.style.display = 'none';
+              showError('Password reset email sent! Check your inbox.');
+              errorMessage.style.color = '#2E7D32';
+            })
+            .catch(error => {
+              console.error('Error sending password reset email:', error);
+              showError(error.message);
+              setLoading(sendResetBtn, false, '', 'Send Reset Link');
+            });
+        };
+
+        cancelResetBtn.onclick = function() {
+          resetForm.style.display = 'none';
+          hideError();
+          errorMessage.style.color = 'red';
+        };
+
+        resetEmail.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') sendResetBtn.click();
+        });
+
+        // Auto-focus email field
+        emailInput.focus();
       });
     </script>
   </body>

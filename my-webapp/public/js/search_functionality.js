@@ -190,7 +190,7 @@ document.addEventListener('DOMContentLoaded', function () {
               const li = document.createElement('li');
               li.className = `entry${entry.pinned ? ' pinned' : ''}`;
               li.innerHTML = `
-                <div class="entry-pin">${entry.pinned ? '📍' : ''}</div>
+                ${entry.pinned ? '<div class="entry-pin">📍</div>' : ''}
                 <div class="timestamp">${entryDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true })}</div>
                 <div class="entry-text">${renderMarkdown(entry.text)}</div>
               `;
