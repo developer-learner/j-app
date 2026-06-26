@@ -1,0 +1,28 @@
+{
+  "agents": {
+    "pm": {
+      "description": "PM agent — translates human intent into PRD, verifies results",
+      "systemPromptPath": ".opencode/prompts/pm.md",
+      "allowReadPaths": ["tasks/", "docs/"],
+      "allowWritePaths": ["tasks/", "docs/PRODUCT.md", "docs/PM-ROLE.md"]
+    },
+    "architect": {
+      "description": "Architect agent — produces engineering plans from PRD",
+      "systemPromptPath": ".opencode/prompts/architect.md",
+      "allowReadPaths": ["tasks/", "docs/"],
+      "allowWritePaths": ["docs/ARCHITECTURE.md", "docs/DECISIONS.md"]
+    },
+    "build": {
+      "description": "Build agent — implements code per PRD + architecture",
+      "systemPromptPath": ".opencode/prompts/build.md",
+      "allowReadPaths": ["public/", "tasks/", "docs/", "firestore.rules", "firebase.json"],
+      "allowWritePaths": ["public/", "firestore.rules", "firebase.json", "tasks/CURRENT.md", "CLAUDE.md", "AGENTS.md", "BLUEPRINT.md", "CONVENTIONS.md", "opencode.json", ".env.example", ".gitignore", "README.md"]
+    },
+    "test": {
+      "description": "Test agent — writes tests from PRD acceptance criteria",
+      "systemPromptPath": ".opencode/prompts/test.md",
+      "allowReadPaths": ["tasks/"],
+      "allowWritePaths": ["tests/"]
+    }
+  }
+}
