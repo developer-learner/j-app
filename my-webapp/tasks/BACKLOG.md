@@ -3,7 +3,7 @@
 ## Up Next
 | Priority | Task | Why | Rough Size |
 |---|---|---|---|
-| P1 | Task 002: Migrate Firestore → Supabase | Cleaner foundation, schema enforcement, SQL. Deferred from Phase 1. | Large |
+| P1 | Migrate Firestore → Supabase | Cleaner foundation, schema enforcement, SQL. Deferred from Phase 1. | Large |
 
 ## Later
 | Priority | Task | Why | Rough Size |
@@ -18,3 +18,5 @@
 | Task | Completed | Notes |
 |---|---|---|
 | Task 001: Adopt Blueprint Documentation | 2026-06-26 | Phase 1 complete |
+| Task 002: Restore Architect & Build Agents | 2026-06-26 | Agents restored, prompts hardened, phase-gate.sh extended with INV-2 checks |
+| Task 003: Formalize Agent Wrapper Workflow | 2026-06-26 | agent.sh committed, docs updated, D-14 logged |

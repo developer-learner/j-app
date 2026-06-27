@@ -31,4 +31,14 @@ This project uses OpenCode with 4 agent roles:
 - `@build` — implement code
 - `@test` — write tests
 
+Invoke agents via the wrapper script to automatically run role-boundary checks:
+```bash
+bash scripts/agent.sh pm "Write a PRD for..."
+bash scripts/agent.sh architect "Design the data model..."
+bash scripts/agent.sh build "Implement the feature..."
+bash scripts/agent.sh test "Write tests..."
+```
+
+The wrapper runs `opencode run --agent <role>` then immediately runs the INV-2 + INV-3 gate, preventing role-boundary violations before any files are committed.
+
 See `BLUEPRINT.md` for details.

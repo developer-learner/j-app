@@ -39,7 +39,7 @@ if [ -n "$ROLE" ] && [ "$ROLE" != "--inv3-only" ]; then
 
   # Resolve allowed path(s) for the role
   case "$ROLE" in
-    pm)        ALLOWED="^${PREFIX}(tasks/|docs/PRODUCT\\.md|docs/PM-ROLE\\.md)" ;;
+    pm)        ALLOWED="^${PREFIX}(tasks/|docs/|scripts/phase-gate\\.sh|scripts/agent\\.sh|BLUEPRINT\\.md|CLAUDE\\.md|AGENTS\\.md|README\\.md|\\.opencode/prompts/)" ;;
     architect) ALLOWED="^${PREFIX}docs/" ;;
     build)     ALLOWED="^${PREFIX}public/" ;;
     test)      ALLOWED="^${PREFIX}tests/" ;;

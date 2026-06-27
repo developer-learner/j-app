@@ -30,7 +30,7 @@ my-webapp/
 ├── .env.example             — Environment variable template
 ├── .gitignore               — Git ignore rules
 ├── README.md                — Human entry point
-├── scripts/                 — INV-3 gate (phase-gate.sh), frozen contract (.approved/)
+├── scripts/                 — INV-2 + INV-3 gate (phase-gate.sh + agent.sh wrapper), frozen contract (.approved/)
 ├── docs/                    — Architecture, decisions, product, testing
 ├── tasks/                   — Task tracking (CURRENT.md, BACKLOG.md)
 ├── tests/                   — Test files (future)
@@ -54,7 +54,7 @@ Firestore composite indexes are required for `where` + `orderBy` queries. Custom
 ## Agent Roles
 | Role | Responsibility | Writes |
 |---|---|---|
-| **PM** | Intake business intent → structured PRD in `tasks/CURRENT.md`. Verify results against PRD. | `tasks/`, `docs/PRODUCT.md` |
+| **PM** | Intake business intent → structured PRD in `tasks/CURRENT.md`. Verify results against PRD. | `tasks/`, `docs/`, `BLUEPRINT.md`, `CLAUDE.md`, `AGENTS.md`, `README.md`, `.opencode/prompts/` |
 | **Architect** | Engineering plan from approved PRD. Write architecture + decisions. | `docs/ARCHITECTURE.md`, `docs/DECISIONS.md` |
 | **Build** | Implement code per PRD + architecture. | `public/`, root config files |
 | **Test** | Write tests from PRD acceptance criteria. | `tests/` (future) |

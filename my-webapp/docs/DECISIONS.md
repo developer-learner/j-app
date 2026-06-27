@@ -75,7 +75,23 @@
 **Decision**: Create `docs/.pm-last-review` with the current HEAD commit SHA. PM owns advancing it; no agent writes to it.
 **Do not suggest**: Using an alternative tracking mechanism — the template's pattern is simple and proven.
 
+## D-14: agent.sh wrapper for preventive INV-2 enforcement (2026-06-26)
+
+**Context**: `scripts/phase-gate.sh` existed with full INV-2 + INV-3 checks for all four roles. But the gate was purely manual — it only fired when someone remembered to run it before committing. This meant agents could cross role boundaries during a session, and the gate would only catch the violation after the fact (detective, not preventive). A pre-commit hook would also be detective — it fires at commit time, after the violation is already in the tree.
+
+**Decision**: Create `scripts/agent.sh` — a 23-line shell wrapper that runs `opencode run --agent <role>` then immediately runs `bash scripts/phase-gate.sh <role>`. This makes the gate fire per-phase, before git ever sees the files. If the architect edits `public/`, the gate catches it immediately and exits non-zero, blocking the handoff.
+
+**Alternatives considered**:
+- **Pre-commit hook**: Detective only — catches violations at commit time, after the code is already staged. No earlier than the wrapper, and harder to bypass (hooks run automatically), but the wrapper is simpler and fires at the same logical point (before handoff, not before commit).
+- **Bare `opencode run`**: No enforcement at all — relies entirely on agent prompts and permissions, which are non-transitive and bypassable.
+- **Full orchestrator** (`scripts/orchestrate.sh`): Would provide automated pipeline execution with sandboxing, but requires infrastructure j-app doesn't have (pytest, podman, headless server). Over-engineering for a journal app.
+
+**Trade-off**: Still requires manual invocation (the human types `bash scripts/agent.sh architect "..."` instead of `opencode run --agent architect "..."`). But the gate fires every time, making it preventive rather than detective. The cost is one extra level of indirection and a 23-line script to maintain.
+
+**Do not suggest**: Removing the wrapper in favor of bare `opencode run` — that eliminates the only preventive INV-2 check j-app has.
+
 ## D-13: Defer .github/workflows/ and scripts/ (2026-06-26, updated 2026-06-26)
+
 **Documentation-only:**
 **Context**: Template includes CI workflows and automation scripts. j-app currently has none.
 **Decision**: Defer `.github/workflows/`. `scripts/` is partially un-deferred — `scripts/phase-gate.sh` exists for manual INV-2 + INV-3 checks (`bash scripts/phase-gate.sh <role>`). No orchestrator or automation around it. INV-2 enforcement was added after architect was observed editing `public/` files during a build phase — the gap D-13 originally recorded.

@@ -31,7 +31,7 @@ Every Firestore query on entry collections must include `.where('userId', '==', 
 Any new rule that checks a document field must be preceded by a backfill of that field on every existing document.
 
 ### H-05: Roles are write-boundaried
-PM writes `tasks/` and `docs/PRODUCT.md`. Architect writes `docs/ARCHITECTURE.md` and `docs/DECISIONS.md`. Build writes `public/` and root config files. Test writes `tests/`. No cross-boundary writes.
+PM writes `tasks/`, `docs/`, `BLUEPRINT.md`, `CLAUDE.md`, `AGENTS.md`, `README.md`, and `.opencode/prompts/`. Architect writes `docs/ARCHITECTURE.md` and `docs/DECISIONS.md`. Build writes `public/` and root config files. Test writes `tests/`. No cross-boundary writes.
 
 ### H-06: Build Report, not Status
 Build agent appends completion summary to `tasks/CURRENT.md` under "Build Report". Build agent never modifies the Status field — that is PM's responsibility.
@@ -55,7 +55,7 @@ This project uses Firebase compat SDK v10, vanilla JavaScript, no build step, no
 - Owns product direction and priorities
 - Reviews build output and verifies against PRD
 - Sets Status field (Draft → Approved → Complete)
-- Writes: `tasks/CURRENT.md`, `tasks/BACKLOG.md`, `docs/PRODUCT.md`, `docs/PM-ROLE.md`
+- Writes: `tasks/`, `docs/`, `BLUEPRINT.md`, `CLAUDE.md`, `AGENTS.md`, `README.md`, `.opencode/prompts/`
 
 ### Architect
 - Produces engineering plan from approved PRD
@@ -81,9 +81,13 @@ This project uses Firebase compat SDK v10, vanilla JavaScript, no build step, no
 3. Phase 3+: Todo-manager feature buildout
 
 ## Phase-Gate Note
-INV-2 enforcement is partially implemented via `scripts/phase-gate.sh` (manual, run with `bash scripts/phase-gate.sh <role>`). The gate checks that the given role only touched its allowed paths before committing. It is NOT automatically run — handoff between agents is still PM-driven (no orchestrator). OpenCode agent permissions remain non-transitive (a restricted agent can bypass limits via the Task tool), so the gate is a manual speed bump, not a mechanical barrier.
+INV-2 enforcement is implemented via two scripts:
 
-To use: `bash scripts/phase-gate.sh architect` (etc.) before committing after each agent phase. Returns non-zero with violations listed if the role touched files outside its allowed paths.
+1. **`scripts/phase-gate.sh`** — the gate itself. Checks that the given role only touched its allowed paths (INV-2) and that all D-IDs are cross-referenced (INV-3). Run standalone with `bash scripts/phase-gate.sh <role>`.
+
+2. **`scripts/agent.sh`** — the recommended invocation wrapper. Runs `opencode run --agent <role>` then immediately runs `scripts/phase-gate.sh <role>`. This makes the gate fire per-phase, before any files are committed. Usage: `bash scripts/agent.sh <role> "instruction"`.
+
+OpenCode agent permissions remain non-transitive (a restricted agent can bypass limits via the Task tool), so the gate is not a mechanical barrier — but the wrapper makes it a preventive speed bump that fires every time, not a detective check after the fact.
 
 ## Component Inventory
 
@@ -119,7 +123,7 @@ Build (public/ + root configs) ──► PM verification (read files, check crit
                               pass → done   fail → route up to PM → human decides
 ```
 
-Note: j-app does not use `scripts/orchestrate.sh`. Handoff between agents is manual (PM-driven). A lightweight `scripts/phase-gate.sh` is available for manual INV-2 + INV-3 checking (`bash scripts/phase-gate.sh <role>`). Role boundaries are also enforced by `opencode.json` permissions and agent prompts (non-transitive — see Phase-Gate Note above).
+Note: j-app does not use `scripts/orchestrate.sh`. Handoff between agents is manual (PM-driven). Use `bash scripts/agent.sh <role> "instruction"` to invoke an agent and automatically run the INV-2 + INV-3 gate (via `scripts/agent.sh` → `scripts/phase-gate.sh`). Standalone gate check: `bash scripts/phase-gate.sh <role>`. Role boundaries are also enforced by `opencode.json` permissions and agent prompts (non-transitive — see Phase-Gate Note above).
 
 ---
 
