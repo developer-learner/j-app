@@ -32,8 +32,10 @@ my-webapp/
 ├── .env.example                 — Environment variable template
 ├── .gitignore                   — Git ignore rules
 ├── README.md                    — Human entry point
+├── scripts/                     — INV-3 gate (phase-gate.sh), frozen contract (.approved/)
 ├── docs/                        — Architecture, decisions, product, testing
 ├── tasks/                       — Task tracking (CURRENT.md, BACKLOG.md)
+├── tests/                       — Test files (future)
 └── .opencode/prompts/           — Agent role prompts
 ```
 
