@@ -1,10 +1,21 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "default_agent": "pm",
+  "provider": {
+    "lms": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "LM Studio local (future use)",
+      "options": { "baseURL": "http://127.0.0.1:1234/v1" },
+      "models": {
+        "qwen/qwen3-coder-next": { "name": "Qwen3 Coder Next (local)" }
+      }
+    }
+  },
   "agent": {
     "pm": {
       "description": "PM agent — translates human intent into PRD, verifies results",
       "mode": "primary",
+      "model": "[YOUR_FRONTIER_MODEL]",
       "prompt": "{file:.opencode/prompts/pm.md}",
       "permission": {
         "edit": { "public/**": "deny", "tests/**": "deny" }
@@ -13,6 +24,7 @@
     "architect": {
       "description": "Architect agent — produces engineering plans from approved PRD",
       "mode": "primary",
+      "model": "[YOUR_FRONTIER_MODEL]",
       "prompt": "{file:.opencode/prompts/architect.md}",
       "permission": {
         "edit": { "public/**": "deny", "tests/**": "deny" }
@@ -21,6 +33,7 @@
     "build": {
       "description": "Build agent — implements code per PRD + architecture",
       "mode": "primary",
+      "model": "[YOUR_FRONTIER_MODEL]",
       "prompt": "{file:.opencode/prompts/build.md}",
       "permission": {
         "edit": { "tests/**": "deny", "**": "allow" }
@@ -29,6 +42,7 @@
     "test": {
       "description": "Test agent — writes tests from PRD acceptance criteria",
       "mode": "primary",
+      "model": "[YOUR_FRONTIER_MODEL]",
       "prompt": "{file:.opencode/prompts/test.md}",
       "permission": {
         "edit": { "public/**": "deny", "tests/**": "allow" }
