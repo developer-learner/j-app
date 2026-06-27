@@ -276,7 +276,6 @@
                 const li = document.createElement('li');
                 li.className = `entry${entry.pinned ? ' pinned' : ''}`;
                 li.innerHTML = `
-                  ${entry.pinned ? '<div class="entry-pin">📍</div>' : ''}
                   <div class="timestamp">${timeString}</div>
                   <div class="entry-text">${renderMarkdown(entry.text)}</div>
                 `;
@@ -298,7 +297,7 @@
           actionsDiv.className = 'actions';
 
           const pinButton = document.createElement('button');
-          pinButton.className = 'pin-btn';
+          pinButton.className = 'pin-btn' + (entry.pinned ? ' pinned' : '');
           pinButton.innerHTML = entry.pinned ? '📍' : '📌';
           pinButton.title = entry.pinned ? 'Unpin' : 'Pin to top';
           pinButton.onclick = () => togglePin(entryId, !entry.pinned);
