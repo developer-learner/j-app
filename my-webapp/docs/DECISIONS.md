@@ -39,3 +39,38 @@
 **Decision**: Use `!resource.data.keys().hasAny(['userId']) || resource.data.userId == request.auth.uid` to allow access for docs without the field while enforcing ownership for docs that have it.
 **Trade-off**: Slightly more complex rule. But eliminates the class of breakage where a new rule kills access to old data.
 **Do not suggest**: Removing the backward-compatible fallback until all existing docs are verified to have the field.
+
+## D-08: Adopt template LLM Correction Log in CLAUDE.md (2026-06-26)
+**Context**: Template includes a correction log section described as "the most valuable section." j-app CLAUDE.md lacks it, meaning repeat mistakes are likely across sessions.
+**Decision**: Adopt the section with j-app-appropriate seed entries. The template's placeholder rows are replaced with j-app's actual guardrails (G-01 through G-04). The table format and preamble are kept.
+**Do not suggest**: Omitting the correction log — this is a zero-cost high-value addition that prevents repeat LLM mistakes.
+
+## D-09: Adopt template's 7 Operating Rules, replacing the current 5 (2026-06-26)
+**Context**: Template has 7 operating rules derived from real failures. Current j-app CLAUDE.md has 5 rules that overlap partially but miss key rules: "one commit one concern," "conditionals are checkpoints," "'detected' ≠ 'enforced'," and "decide trivial calls."
+**Decision**: Adopt the full 7 rules. The current 5 rules are a subset; replacing them wholesale ensures no gap. Adapt language to j-app context (no phase-gate.sh, no pytest — reference PM manual verification instead).
+**Do not suggest**: Keeping the current 5 and appending — the template's 7 are more complete and better-phrased.
+
+## D-10: Adopt template Reporting section in CLAUDE.md (2026-06-26)
+**Context**: Template includes a git-log-based reporting protocol to ground status reports in the commit tree. Current j-app CLAUDE.md has no reporting section.
+**Decision**: Adopt verbatim from template, adapted for j-app (no orchestrate.sh, no pytest — reporting is PM-side). The `docs/.pm-last-review` tracking pattern is retained.
+**Do not suggest**: Omitting this — without it, agents report from memory, which the template explicitly warns against.
+
+## D-11: Adopt template BLUEPRINT.md sections with j-app adaptation (2026-06-26)
+**Context**: Template BLUEPRINT.md has 5 sections absent from j-app's BLUEPRINT.md: Component Inventory, System Diagram, Cost Model, Maintenance Contract, Files Never to Touch. These provide operational reference for LLM sessions.
+**Decision**: Adopt all 5, each adapted for j-app's actual stack:
+- Component Inventory: replace Python/venv/LM Studio references with Firebase, Firebase CLI, vanilla JS
+- System Diagram: remove phase-gate.sh/orchestrate.sh — j-app's pipeline is PM-driven, not automated
+- Cost Model: reflect D-06 (single model for all agents) not the template's local+frontier split
+- Maintenance Contract: retain template structure verbatim (it's stack-agnostic)
+- Files Never to Touch: add `docs/.pm-last-review` to the template's existing list
+**Do not suggest**: Skipping any of these — they are low-effort, high-value memory layer additions.
+
+## D-12: Create docs/.pm-last-review for verification tracking (2026-06-26)
+**Context**: Template requires a `docs/.pm-last-review` file as the source-of-truth review marker. PM-ROLE.md already references it but the file doesn't exist.
+**Decision**: Create `docs/.pm-last-review` with the current HEAD commit SHA. PM owns advancing it; no agent writes to it.
+**Do not suggest**: Using an alternative tracking mechanism — the template's pattern is simple and proven.
+
+## D-13: Defer .github/workflows/ and scripts/ (2026-06-26)
+**Context**: Template includes CI workflows and automation scripts. j-app currently has none.
+**Decision**: Defer both. They are not part of this documentation improvement task. The Phase-Gate Note in BLUEPRINT.md already records that INV-2 enforcement is unimplemented.
+**Do not suggest**: Creating placeholder files — defer means defer.

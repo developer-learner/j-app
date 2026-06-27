@@ -26,9 +26,9 @@ my-webapp/
 
 ## Working with Agents
 This project uses OpenCode with 4 agent roles:
-- `@pm` — define tasks and verify output
-- `@architect` — plan features
-- `@build` — implement code
-- `@test` — write tests
+- `@1-pm` — define tasks and verify output
+- `@2-architect` — plan features
+- `@3-build` — implement code
+- `@4-test` — write tests
 
 See `BLUEPRINT.md` for details.

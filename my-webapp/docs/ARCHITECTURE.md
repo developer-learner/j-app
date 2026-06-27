@@ -102,3 +102,130 @@ container
 - Edit/delete buttons hidden after 60 minutes (`timeDifference <= 60`)
 - No offline support beyond browser cache
 - No pagination — all entries loaded at once (current: ~170 entries, fine at this scale)
+
+---
+
+## Documentation Improvement Plan
+
+This section specifies the exact additions needed to close gaps found by the PM audit, referencing the corresponding content in the template at `sw-dev-blueprint`.
+
+### Target: `CLAUDE.md` (owned by Build)
+
+Add three sections after the existing "Operating Rules" block:
+
+#### 1. LLM Correction Log (template: `sw-dev-blueprint/CLAUDE.md` lines 179–194)
+
+Insert a heading `## LLM Correction Log` with a preamble paragraph: *"When the LLM makes a mistake and you correct it, log it here. This is the most valuable section — it prevents repeat mistakes. A project 6 months in should have a rich log."* Follow with a 3-column table (`| Date | Mistake | Guard Added |`) and the single seed row from the PM audit: the `authHandled` guard (D-01) and the `userId` query filter (G-02) as entries. Content adapted to j-app's actual stack — not a copy of the template's placeholder rows.
+
+#### 2. Reporting section (template: `sw-dev-blueprint/CLAUDE.md` lines 130–145)
+
+Insert a heading `## Reporting` with instructions:
+- Read `docs/.pm-last-review` to get the last reviewed ref (`cat docs/.pm-last-review 2>/dev/null || git rev-list --max-parents=0 HEAD`)
+- Derive commit list from `git log "$LAST"..HEAD --oneline`
+- State scope explicitly: "N new commits since reviewed ref `$LAST`"
+- Never write or advance `docs/.pm-last-review` (PM-owned)
+- If file is missing, fallback to initial commit
+
+#### 3. Replace the current 5 Operating Rules with the template's 7 Rules (template: `sw-dev-blueprint/CLAUDE.md` lines 148–166)
+
+Current lines 61–65 have 5 rules. Replace them with the template's 7 (adapted for j-app context):
+1. **Report against the tree, never memory** — derive commit list from `git log`
+2. **One commit, one concern** — constraint changes get isolated commits
+3. **A change to what a rule does is stop-and-ask** — improving *how* is fine, changing *what* is not
+4. **Conditionals are checkpoints** — "only if Y fails" means report whether Y failed
+5. **Read the artifact, not the summary** — source wins over agent reports
+6. **"Detected" ≠ "enforced"** — separate standalone-test from live-run claims
+7. **Decide trivial calls; escalate only contested principles** — don't re-ask for low-stakes choices
+
+Add the preamble: *"A rule that cannot be enforced mechanically is a suggestion, not a rule. Document the enforcement mechanism alongside every rule — and where there is none, say so explicitly."*
+
+### Target: `BLUEPRINT.md` (owned by Build)
+
+Add five sections. Placement: after the "Phase-Gate Note" section and before "Anti-Patterns".
+
+#### 1. Component Inventory (template: `sw-dev-blueprint/BLUEPRINT.md` lines 43–61)
+
+Insert `## Component Inventory` with a table of every tool/object in the j-app system and its role:
+| Object | Role |
+|--------|------|
+| **git** | Version control + undo button. Every edit is committable; any mistake is `git reset` away. |
+| **GitHub** | Remote backup, collaboration. |
+| **Firebase** | Auth, Firestore DB, Hosting — the only backend dependency. |
+| **OpenCode** | Coding agent. Reads CLAUDE.md/AGENTS.md + CONVENTIONS.md. |
+| **Firebase CLI** | Deployment. Runs `firebase deploy`. |
+| **The docs** | Memory layer for stateless LLMs (BLUEPRINT.md + CLAUDE.md + CONVENTIONS.md + docs/ + tasks/). |
+| **AGENTS.md** | Symlink to CLAUDE.md. OpenCode entry point. |
+| **Four agents** (PM/Architect/Build/Test) | Role pipeline defined in opencode.json. |
+
+Adapted from template — Firebase replaces LM Studio/venv/pytest etc.; the j-app stack has no build step, no Python, no local LLM.
+
+#### 2. The System in One Diagram (template: `sw-dev-blueprint/BLUEPRINT.md` lines 223–240)
+
+Insert `## The System in One Diagram` with a flow diagram adapted to j-app's non-autonomous pipeline (no orchestrate.sh, no phase-gate.sh):
+
+```
+Human casual instruction
+      │
+      ▼  (PM translates — lossy, the only human-checked step)
+PRD + acceptance criteria  [tasks/CURRENT.md, committed]
+      │  ← HUMAN APPROVAL GATE (Status: Approved)
+      ▼
+Architect → eng plan (ARCHITECTURE.md / DECISIONS.md)
+      │
+      ▼
+Build (public/ + root configs) ──► Manual review / PM verification
+                                          │
+                              pass → done   fail → route up to PM → human
+```
+
+#### 3. Cost Model (template: `sw-dev-blueprint/BLUEPRINT.md` lines 359–367)
+
+Insert `## Cost Model` with a table adapted to j-app's current setup:
+
+| Role | Model tier | Why |
+|------|-----------|-----|
+| Build, Test | Frontier (current model) | j-app uses a single model for all agents per D-06. No LM Studio. |
+| PM, Architect | Frontier (same model) | Same reason — single-model setup. |
+
+Rule: if a future setup uses local + frontier, document the tier split here. For now, all agents share the same model.
+
+#### 4. Maintenance Contract (template: `sw-dev-blueprint/BLUEPRINT.md` lines 378–391)
+
+Insert `## The Maintenance Contract` with trigger/action table:
+
+| Trigger | Action | File |
+|---------|--------|------|
+| Non-obvious decision made | Log it with reasoning | `DECISIONS.md` |
+| LLM made a mistake you corrected | Add guard | `CLAUDE.md` correction log |
+| Task completed | Move to completed table | `BACKLOG.md` |
+| Schema changed | Update data models | `ARCHITECTURE.md` |
+
+Adapt preamble: emphasize the correction log as the most important habit.
+
+#### 5. Files the LLM Should Never Touch (template: `sw-dev-blueprint/BLUEPRINT.md` lines 439–444)
+
+Insert `## Files the LLM Should Never Touch Without Explicit Instruction` with the adapted list:
+
+- `DECISIONS.md` — human/Architect-authored record; do not edit without explicit instruction
+- `CLAUDE.md` correction log — human-maintained; rows added per the rule, not by the LLM
+- `tasks/BACKLOG.md` completed section — historical record; entries move here from CURRENT.md, not edited
+- `docs/.pm-last-review` — PM-owned review marker; no agent writes this
+
+### Target: `docs/PM-ROLE.md` (owned by PM)
+
+#### Front-load richer role description (template: `sw-dev-blueprint/docs/PM-ROLE.md` lines 5–9, 37–41, 43–45)
+
+Replace the current opening with:
+- **"What you are"** section — adapted from template: "You are the single point of contact between the human and the agent pipeline. You translate, drive, and verify. You are not a coder and not the decision-maker on product strategy."
+- **"Why this role exists"** section — adapted from template lines 37–41: explain that agents cannot be trusted to verify their own work, the PM source-side check is the actual enforcement layer.
+- **"Note on the two PMs"** section — adapted from template lines 43–45: distinguish the CEO-facing oversight PM (this document) from the in-pipeline PM agent in `.opencode/prompts/pm.md`.
+- Keep the existing "Three Duties" and "Operating Disciplines" sections but expand the disciplines using template lines 22–28 (verify at source, reports scoped to tree, own the review marker, flag misbehavior, bring clean decisions, honor Operating Rules).
+
+### Target: `docs/.pm-last-review` (owned by PM)
+
+Create this file with the initial commit hash that was current at the time of the audit. Content: a single line with the commit SHA, nothing else. This file is PM-write-only — no agent may advance it.
+
+### Target: No action items from this plan
+
+- `.github/workflows/` — deferred (do not create)
+- `scripts/` — deferred (do not create)

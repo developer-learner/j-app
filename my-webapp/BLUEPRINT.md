@@ -31,13 +31,22 @@ Every Firestore query on entry collections must include `.where('userId', '==', 
 Any new rule that checks a document field must be preceded by a backfill of that field on every existing document.
 
 ### H-05: Roles are write-boundaried
-PM writes `tasks/` and `docs/PRODUCT.md`. Architect writes `docs/ARCHITECTURE.md` and `docs/DECISIONS.md`. Build writes `public/` and root config. Test writes `tests/`. No cross-boundary writes.
+PM writes `tasks/` and `docs/PRODUCT.md`. Architect writes `docs/ARCHITECTURE.md` and `docs/DECISIONS.md`. Build writes `public/` and root config files. Test writes `tests/`. No cross-boundary writes.
 
 ### H-06: Build Report, not Status
 Build agent appends completion summary to `tasks/CURRENT.md` under "Build Report". Build agent never modifies the Status field — that is PM's responsibility.
 
 ### H-07: Tests derive from PRD, not implementation
 When tests exist, they must be written from the acceptance criteria in `tasks/CURRENT.md`, not from reading the source code.
+
+### H-08: Model must NOT be a thinking model (Rule 1 from blueprint)
+Thinking models emit output into `reasoning_content` and leave `content` empty, which breaks agent parsing (empty/invalid response → silent failure or JSON error). The active model in OpenCode MUST be non-thinking. If using LM Studio, verify this before starting work.
+
+### H-09: Escalation tripwire — two strikes, then escalate (Rule 2 from blueprint)
+Do not retry the same failing fix more than twice. Two strikes → escalate to a frontier model or halt and leave a note. Same failure twice → re-plan; plan fails twice → escalate to PM; PM stuck → human decides.
+
+### H-10: Stack adaptation — docs must match actual stack (Rule 3 from blueprint)
+This project uses Firebase compat SDK v10, vanilla JavaScript, no build step, no backend server. The sw-dev-blueprint template's Python/FastAPI defaults do not apply. All documentation must reflect the actual stack. If a template document has placeholder stack information, it must be adapted before the first commit.
 
 ## Agent Roles
 
@@ -58,6 +67,7 @@ When tests exist, they must be written from the acceptance criteria in `tasks/CU
 - Implements code per PRD + architecture plan
 - Source of truth is PRD acceptance criteria + ARCHITECTURE.md + DECISIONS.md
 - After completion, appends summary to `tasks/CURRENT.md` "Build Report" section
+- Does NOT modify the Status field — that belongs to PM
 - Writes: `public/`, root config files (CLAUDE.md, opencode.json, etc.)
 
 ### Test
@@ -69,6 +79,79 @@ When tests exist, they must be written from the acceptance criteria in `tasks/CU
 1. ~~Phase 1: Adopt blueprint documentation~~ (current task)
 2. Phase 2: Migrate to Supabase (deferred)
 3. Phase 3+: Todo-manager feature buildout
+
+## Phase-Gate Note
+INV-2 enforcement (`scripts/phase-gate.sh`) is not yet implemented. Role boundaries are currently enforced by agent prompts and `opencode.json` permissions only. OpenCode agent permissions are non-transitive (a restricted agent can bypass limits via the Task tool), so these are speed bumps, not guarantees. Adding a standalone `scripts/phase-gate.sh` as a manual post-phase boundary check is recommended for future phases.
+
+## Component Inventory
+
+The full set of tools and objects this project runs on:
+
+| Object | Role |
+|--------|------|
+| **git** | Version control + the LLM's undo button. Every edit is committable; any mistake is `git reset` away. Also: backup, attribution, collaboration. |
+| **GitHub** | The remote. Off-machine backup, and host for the repository. |
+| **Firebase** | Auth (email/password), Firestore (database), Hosting (static site) — the only backend dependency. |
+| **Firebase CLI** | Deployment. Runs `firebase deploy` to push `public/` and deploy rules. |
+| **OpenCode** | The coding agent. Reads CLAUDE.md/AGENTS.md + CONVENTIONS.md automatically, talks plain English, writes files to disk. |
+| **The docs** | The memory layer for stateless LLMs (this file + CLAUDE.md + CONVENTIONS.md + docs/ + tasks/). |
+| **AGENTS.md** | Content-equivalent to CLAUDE.md. OpenCode's preferred entry point; keeps content in sync with no symlink. |
+| **Four agents** (PM/Architect/Build/Test) | Role pipeline: PM writes PRD, Architect plans, Build writes `public/`, Test writes `tests/`. Defined in `opencode.json`. |
+
+---
+
+## The System in One Diagram
+
+```
+Human casual instruction
+      │
+      ▼  (PM translates — lossy, the only human-checked step)
+PRD + acceptance criteria  [tasks/CURRENT.md, committed]
+      │  ← HUMAN APPROVAL GATE (Status: Approved). Criteria freeze here.
+      ▼
+Architect → eng plan (ARCHITECTURE.md / DECISIONS.md)
+      │
+      ▼
+Build (public/ + root configs) ──► PM verification (read files, check criteria)
+                                          │
+                              pass → done   fail → route up to PM → human decides
+```
+
+Note: j-app does not use `scripts/orchestrate.sh` or `scripts/phase-gate.sh`. Handoff between agents is manual (PM-driven). Role boundaries are enforced by `opencode.json` permissions and agent prompts only (non-transitive — see Phase-Gate Note above).
+
+---
+
+## Cost Model
+
+| Role | Model tier | Why |
+|------|-----------|-----|
+| PM, Architect, Build, Test | Frontier (single model) | All 4 agents use the same frontier model per D-06. No LM Studio or local model setup. Role separation is enforced by `opencode.json` path restrictions and handoff protocol, not by capability difference. |
+
+If a future setup introduces local + frontier tiers, document the split here.
+
+---
+
+## The Maintenance Contract
+
+| Trigger | Action | File |
+|---------|--------|------|
+| Non-obvious decision made | Log it with reasoning | `DECISIONS.md` |
+| LLM made a mistake you corrected | Add guard | `CLAUDE.md` correction log |
+| Task completed | Move to completed table | `BACKLOG.md` |
+| Schema changed | Update data models | `ARCHITECTURE.md` |
+
+**The correction log rule** is the most important habit. It turns every LLM mistake into a permanent improvement. A project 6 months in should have a `CLAUDE.md` full of hard-won guards — that's a sign the system is working.
+
+---
+
+## Files the LLM Should Never Touch Without Explicit Instruction
+
+- `DECISIONS.md` — human/Architect-authored record of deliberate choices; do not edit without explicit instruction
+- `CLAUDE.md` correction log — human-maintained; rows added per the rule, not by the LLM
+- `tasks/BACKLOG.md` completed section — historical record; entries move here from `CURRENT.md`, not edited
+- `docs/.pm-last-review` — PM-owned review marker; no agent advances this file
+
+---
 
 ## Anti-Patterns (Do Not Do)
 - Do not add `.orderBy()` to Firestore queries — always sort client-side

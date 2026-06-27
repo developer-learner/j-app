@@ -59,9 +59,51 @@ Firestore composite indexes are required for `where` + `orderBy` queries. Custom
 | **Build** | Implement code per PRD + architecture. | `public/`, root config files |
 | **Test** | Write tests from PRD acceptance criteria. | `tests/` (future) |
 
+## Reporting
+
+When summarizing work since the last PM review (status reports, commit scoping, progress updates):
+
+1. Read `docs/.pm-last-review` to get the last reviewed ref:
+   ```
+   LAST=$(cat docs/.pm-last-review 2>/dev/null || git rev-list --max-parents=0 HEAD)
+   ```
+2. Derive the commit list from the tree, not memory:
+   ```
+   git log "$LAST"..HEAD --oneline
+   ```
+3. State the scope explicitly in the report: "N new commits since reviewed ref `$LAST`".
+4. Never write or advance `docs/.pm-last-review` — PM-owned.
+5. If the file is missing (fresh checkout), the `git rev-list` fallback uses the initial commit — the scope becomes the entire history, which is correct for a first report.
+
 ## Operating Rules
-1. Read the current state from files, not from your own memory.
-2. Before writing, verify the file exists and read it.
-3. Report status via "Build Report" in `tasks/CURRENT.md` — never modify the Status field.
-4. No agent writes outside its allowed paths.
-5. When in doubt, ask the PM.
+
+> A rule that cannot be enforced mechanically is a suggestion, not a rule. Document the enforcement mechanism alongside every rule — and where there is none, say so explicitly.
+
+Seven rules for agents working in this repo, derived from failures in prior sessions. Rules 2–7 are advisory — they rely on PM review for enforcement. Rule 1 has a mechanical backstop.
+
+1. **Report against the tree, never memory.** Derive your commit list from `LAST=$(cat docs/.pm-last-review); git log "$LAST"..HEAD --oneline`. State the range. A report that disagrees with `git log` is a defect regardless of the underlying work. *(Mechanical backstop: `docs/.pm-last-review` + PM source-side reconciliation.)*
+
+2. **One commit, one concern.** Any change to a gate, invariant, permission, or model choice gets its own isolated commit whose message names it as such. Never bundle a constraint change with unrelated edits.
+
+3. **A change to what a rule does is stop-and-ask.** Improving how a gate detects — fix freely. Changing what happens on a violation, or relaxing any constraint — stop and ask the PM first, even mid-run, even if the rule is what's slowing you down. The rule slowing you down is usually it working.
+
+4. **Conditionals are checkpoints.** "Only do X if Y fails" means: when you reach that point, report whether Y failed and what you chose. If Y didn't fail, say so — don't silently act.
+
+5. **Read the artifact, not the summary.** Report from committed files, never from another agent's summary or your own memory of a run. When source and summary disagree, source wins.
+
+6. **"Detected" ≠ "enforced"; "nothing went wrong" ≠ "safeguard works."** Keep standalone-test results and live-run results as separate claims. An untriggered safeguard is inconclusive, not green.
+
+7. **Decide trivial calls; escalate only contested principles.** If the PM has stated the governing principle ("put it where process docs live"), execute — don't re-ask for confirmation or surface options for a low-stakes choice. Escalate only when the principle itself is unclear, or when correctness is genuinely at stake (then asking is correct, not a failure).
+
+## LLM Correction Log
+
+> When the LLM makes a mistake and you correct it, log it here.
+> This is the most valuable section — it prevents repeat mistakes.
+> A project 6 months in should have a rich log. That means the system is working.
+
+| Date | Mistake | Guard Added |
+|------|---------|-------------|
+| 2026-06-26 | Auth guard moved inside `if(user)` block, causing redirect loop on token refresh | G-01: `authHandled` flag must be set BEFORE the `if(user)` check |
+| 2026-06-26 | Queries without `.where('userId')` silently denied by Firestore rules — hard to debug | G-02: Every entry collection query must include `.where('userId', '==', currentUserUid)` |
+| 2026-06-26 | Deployed `userId` field-check rule without backfill, locking out access to old documents | G-03: Backfill every document before deploying a field-check rule |
+| 2026-06-26 | `.orderBy()` with `.where()` required composite indexes that don't exist for custom journals | G-04: No `.orderBy()` in queries — sort client-side |

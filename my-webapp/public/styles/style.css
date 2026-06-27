@@ -151,8 +151,6 @@ body.dark-theme .dropdown-divider {
   background: #444;
 }
 
-
-
 h1 {
   font-size: 1.5rem;
   font-weight: 700;
@@ -182,7 +180,7 @@ h1 {
 .tab {
   padding: 8px 12px;
   text-align: center;
-  background-color: hsl(var(--th), 40%, 82%);
+  background-color: var(--tab-bg, #dbd0c4);
   border-radius: 5px;
   cursor: pointer;
   color: #333;
@@ -197,27 +195,27 @@ h1 {
 }
 
 .tab.active {
-  background-color: hsl(var(--th), 55%, 72%);
+  background-color: var(--tab-bg-active, #cbb49c) !important;
   color: #222;
   font-weight: 600;
 }
 
 .tab:hover {
-  background-color: hsl(var(--th), 45%, 76%);
+  background-color: var(--tab-bg-hover, #d0c2b3) !important;
 }
 
 body.dark-theme .tab {
-  background-color: hsl(var(--th), 30%, 20%);
+  background-color: var(--tab-bg, #3d3228);
   color: #e0e0e0;
 }
 
 body.dark-theme .tab.active {
-  background-color: hsl(var(--th), 45%, 28%);
+  background-color: var(--tab-bg-active, #4a3828) !important;
   color: #fff;
 }
 
 body.dark-theme .tab:hover {
-  background-color: hsl(var(--th), 35%, 25%);
+  background-color: var(--tab-bg-hover, #44382d) !important;
 }
 
 /* Trash Button Styles */
@@ -638,6 +636,11 @@ body.dark-theme .stat-label {
 .edit-save-btn {
   background: #00796B;
   color: white;
+}
+
+.edit-save-btn:disabled {
+  background: #80CBC4;
+  cursor: not-allowed;
 }
 
 .edit-cancel-btn {
