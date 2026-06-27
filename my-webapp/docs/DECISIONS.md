@@ -75,8 +75,8 @@
 **Decision**: Create `docs/.pm-last-review` with the current HEAD commit SHA. PM owns advancing it; no agent writes to it.
 **Do not suggest**: Using an alternative tracking mechanism — the template's pattern is simple and proven.
 
-## D-13: Defer .github/workflows/ and scripts/ (2026-06-26)
+## D-13: Defer .github/workflows/ and scripts/ (2026-06-26, updated 2026-06-26)
 **Documentation-only:**
 **Context**: Template includes CI workflows and automation scripts. j-app currently has none.
-**Decision**: Defer both. They are not part of this documentation improvement task. The Phase-Gate Note in BLUEPRINT.md already records that INV-2 enforcement is unimplemented.
-**Do not suggest**: Creating placeholder files — defer means defer.
+**Decision**: Defer `.github/workflows/`. `scripts/` is partially un-deferred — `scripts/phase-gate.sh` exists for manual INV-2 + INV-3 checks (`bash scripts/phase-gate.sh <role>`). No orchestrator or automation around it. INV-2 enforcement was added after architect was observed editing `public/` files during a build phase — the gap D-13 originally recorded.
+**Do not suggest**: Creating CI workflow placeholders — defer means defer.

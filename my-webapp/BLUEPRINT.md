@@ -81,7 +81,9 @@ This project uses Firebase compat SDK v10, vanilla JavaScript, no build step, no
 3. Phase 3+: Todo-manager feature buildout
 
 ## Phase-Gate Note
-INV-2 enforcement (`scripts/phase-gate.sh`) is not yet implemented. Role boundaries are currently enforced by agent prompts and `opencode.json` permissions only. OpenCode agent permissions are non-transitive (a restricted agent can bypass limits via the Task tool), so these are speed bumps, not guarantees. Adding a standalone `scripts/phase-gate.sh` as a manual post-phase boundary check is recommended for future phases.
+INV-2 enforcement is partially implemented via `scripts/phase-gate.sh` (manual, run with `bash scripts/phase-gate.sh <role>`). The gate checks that the given role only touched its allowed paths before committing. It is NOT automatically run — handoff between agents is still PM-driven (no orchestrator). OpenCode agent permissions remain non-transitive (a restricted agent can bypass limits via the Task tool), so the gate is a manual speed bump, not a mechanical barrier.
+
+To use: `bash scripts/phase-gate.sh architect` (etc.) before committing after each agent phase. Returns non-zero with violations listed if the role touched files outside its allowed paths.
 
 ## Component Inventory
 
@@ -117,7 +119,7 @@ Build (public/ + root configs) ──► PM verification (read files, check crit
                               pass → done   fail → route up to PM → human decides
 ```
 
-Note: j-app does not use `scripts/orchestrate.sh` or `scripts/phase-gate.sh`. Handoff between agents is manual (PM-driven). Role boundaries are enforced by `opencode.json` permissions and agent prompts only (non-transitive — see Phase-Gate Note above).
+Note: j-app does not use `scripts/orchestrate.sh`. Handoff between agents is manual (PM-driven). A lightweight `scripts/phase-gate.sh` is available for manual INV-2 + INV-3 checking (`bash scripts/phase-gate.sh <role>`). Role boundaries are also enforced by `opencode.json` permissions and agent prompts (non-transitive — see Phase-Gate Note above).
 
 ---
 
