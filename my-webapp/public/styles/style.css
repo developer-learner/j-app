@@ -492,6 +492,10 @@ body.dark-theme .timestamp {
   flex-shrink: 0;
 }
 
+.entry-checkbox {
+  margin-left: auto;
+}
+
 .edit-btn, .delete-btn {
   background: none;
   border: none;

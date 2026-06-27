@@ -304,6 +304,12 @@
           pinButton.onclick = () => togglePin(entryId, !entry.pinned);
           actionsDiv.appendChild(pinButton);
 
+          // Checkbox for selection
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.className = 'entry-checkbox';
+          actionsDiv.appendChild(checkbox);
+
           if (timeDifference <= 60) {
             const editButton = document.createElement('button');
             editButton.className = 'edit-btn';
