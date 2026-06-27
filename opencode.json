@@ -16,36 +16,36 @@
       "description": "PM agent — translates human intent into PRD, verifies results",
       "mode": "primary",
       "model": "[YOUR_FRONTIER_MODEL]",
-      "prompt": "{file:.opencode/prompts/pm.md}",
+      "prompt": "{file:my-webapp/.opencode/prompts/pm.md}",
       "permission": {
-        "edit": { "public/**": "deny", "tests/**": "deny" }
+        "edit": { "my-webapp/public/**": "deny", "my-webapp/tests/**": "deny" }
       }
     },
     "architect": {
       "description": "Architect agent — produces engineering plans from approved PRD",
       "mode": "primary",
       "model": "[YOUR_FRONTIER_MODEL]",
-      "prompt": "{file:.opencode/prompts/architect.md}",
+      "prompt": "{file:my-webapp/.opencode/prompts/architect.md}",
       "permission": {
-        "edit": { "public/**": "deny", "tests/**": "deny" }
+        "edit": { "my-webapp/public/**": "deny", "my-webapp/tests/**": "deny" }
       }
     },
     "build": {
       "description": "Build agent — implements code per PRD + architecture",
       "mode": "primary",
       "model": "[YOUR_FRONTIER_MODEL]",
-      "prompt": "{file:.opencode/prompts/build.md}",
+      "prompt": "{file:my-webapp/.opencode/prompts/build.md}",
       "permission": {
-        "edit": { "tests/**": "deny", "**": "allow" }
+        "edit": { "my-webapp/tests/**": "deny", "**": "allow" }
       }
     },
     "test": {
       "description": "Test agent — writes tests from PRD acceptance criteria",
       "mode": "primary",
       "model": "[YOUR_FRONTIER_MODEL]",
-      "prompt": "{file:.opencode/prompts/test.md}",
+      "prompt": "{file:my-webapp/.opencode/prompts/test.md}",
       "permission": {
-        "edit": { "public/**": "deny", "tests/**": "allow" }
+        "edit": { "my-webapp/public/**": "deny", "my-webapp/tests/**": "allow" }
       }
     }
   }
