@@ -6,7 +6,7 @@
 
 ## What
 
-Restore the `2-architect` and `3-build` agents that were incorrectly removed, and align the agent configuration with the sw-dev-blueprint template's permission model (broad-allow + specific-deny). Also adopt relevant template rules (stack adaptation, escalation tripwire, thinking-model guard) into BLUEPRINT.md.
+Restore the `architect` and `build` agents that were incorrectly removed, and align the agent configuration with the sw-dev-blueprint template's permission model (broad-allow + specific-deny). Also adopt relevant template rules (stack adaptation, escalation tripwire, thinking-model guard) into BLUEPRINT.md.
 
 ## Why
 
@@ -23,20 +23,20 @@ Restore the `2-architect` and `3-build` agents that were incorrectly removed, an
 
 - `public/`, `firestore.rules`, `firebase.json` — these were modified in error during the removal; they should be restored to their committed state but are handled separately
 - Feature work, code changes, LM Studio setup, orchestrator setup
-- Converting agent names to bare names (e.g. `2-architect` → `architect`) — keeping numeric prefixes for now
+- Converting agent names to bare names (e.g. `1-pm` → `pm`) — now completed as part of blueprint gap-fix task
 
 ## Files Involved
 
 | # | File | Change |
 |---|---|---|
-| 1 | `my-webapp/opencode.json` | Add `2-architect` + `3-build`; switch to broad-allow + specific-deny permissions |
-| 2 | `opencode.json` (root) | Same, with `my-webapp/`-prefixed paths |
+| 1 | `my-webapp/opencode.json` | Add `architect` + `build`; switch to broad-allow + specific-deny permissions |
+| 2 | `opencode.json` (root) | Same, with `my-webapp/`-prefixed paths (later deleted — duplicate) |
 | 3 | `my-webapp/.opencode/prompts/architect.md` | Restore from git (was deleted) |
 | 4 | `my-webapp/.opencode/prompts/build.md` | Restore from git (was deleted) |
 | 5 | `my-webapp/CLAUDE.md` | Add Architect + Build rows to Agent Roles table |
 | 6 | `my-webapp/AGENTS.md` | Same (content-equivalent to CLAUDE.md) |
 | 7 | `my-webapp/BLUEPRINT.md` | Restore Architect/Build sections; add Rules 1, 2, 3 from template; restore write-boundary + Build Report + Tests-from-PRD rules; note phase-gate as future |
-| 8 | `my-webapp/README.md` | Restore `@2-architect` + `@3-build` references |
+| 8 | `my-webapp/README.md` | Restore `@architect` + `@build` references |
 | 9 | `my-webapp/docs/PM-ROLE.md` | Restore architect/build in Drive section |
 | 10 | `my-webapp/docs/DECISIONS.md` | Revert D-06 to 4-agent model |
 | 11 | `my-webapp/tasks/CURRENT.md` | This PRD |
@@ -49,9 +49,9 @@ Restore the `2-architect` and `3-build` agents that were incorrectly removed, an
 
 `my-webapp/opencode.json` defines 4 agents using the template's permission pattern.
 
-**PM agent** (`1-pm`):
+**PM agent** (`pm`):
 ```json
-"1-pm": {
+"pm": {
   "description": "PM agent — translates human intent into PRD, verifies results",
   "mode": "primary",
   "prompt": "{file:.opencode/prompts/pm.md}",
@@ -62,9 +62,9 @@ Restore the `2-architect` and `3-build` agents that were incorrectly removed, an
 ```
 No explicit read restriction — can read everything. Edit denies only `public/` and `tests/`.
 
-**Architect agent** (`2-architect`):
+**Architect agent** (`architect`):
 ```json
-"2-architect": {
+"architect": {
   "description": "Architect agent — produces engineering plans from approved PRD",
   "mode": "primary",
   "prompt": "{file:.opencode/prompts/architect.md}",
@@ -74,9 +74,9 @@ No explicit read restriction — can read everything. Edit denies only `public/`
 }
 ```
 
-**Build agent** (`3-build`):
+**Build agent** (`build`):
 ```json
-"3-build": {
+"build": {
   "description": "Build agent — implements code per PRD + architecture",
   "mode": "primary",
   "prompt": "{file:.opencode/prompts/build.md}",
@@ -87,9 +87,9 @@ No explicit read restriction — can read everything. Edit denies only `public/`
 ```
 Broad-allow: can write everything except `tests/`.
 
-**Test agent** (`4-test`):
+**Test agent** (`test`):
 ```json
-"4-test": {
+"test": {
   "description": "Test agent — writes tests from PRD acceptance criteria",
   "mode": "primary",
   "prompt": "{file:.opencode/prompts/test.md}",
@@ -105,6 +105,7 @@ Deny `public/` (analogous to template's `src/`), allow `tests/`.
 ### R-02 (Required) — Root opencode.json mirrors my-webapp config
 
 `/Users/arc.elixir/dev/j-app/opencode.json` defines the same 4 agents with `my-webapp/`-prefixed paths. Same permission patterns.
+(Later deleted in blueprint gap-fix — root config removed to eliminate duplicate-config landmine, single source of truth in `my-webapp/opencode.json`.)
 
 ### R-03 (Required) — Prompt files restored
 
@@ -160,15 +161,15 @@ Add a note under "Future" or "Anti-Patterns": *"INV-2 enforcement (phase-gate.sh
 ### R-06 (Required) — README.md references all 4 agents
 
 ```
-- `@1-pm` — define tasks and verify output
-- `@2-architect` — plan features
-- `@3-build` — implement code
-- `@4-test` — write tests
+- `@pm` — define tasks and verify output
+- `@architect` — plan features
+- `@build` — implement code
+- `@test` — write tests
 ```
 
 ### R-07 (Required) — PM-ROLE.md references architect and build
 
-The "Drive" section in `docs/PM-ROLE.md` references `@2-architect`, `@3-build`, and `@4-test` as the agents to brief.
+The "Drive" section in `docs/PM-ROLE.md` references `@architect`, `@build`, and `@test` as the agents to brief.
 
 ### R-08 (Required) — DECISIONS.md D-06 reverted to 4-agent model
 
@@ -204,7 +205,7 @@ All changes are applied to the working tree on `main` branch. No new branch unle
 ## Verification
 
 1. **Read** each modified file and confirm content matches acceptance criteria
-2. **Validate** both `opencode.json` files with `python3 -m json.tool` or equivalent
+2. **Validate** `my-webapp/opencode.json` with `python3 -m json.tool` or equivalent
 3. **Diff check** — `git diff --stat` should show only the 11 listed files
 4. **Agent roles** — Confirm prompt files exist: `ls my-webapp/.opencode/prompts/` shows `architect.md`, `build.md`, `pm.md`, `test.md`
 5. **Stack accuracy** — Read CLAUDE.md and verify tech stack matches j-app's actual stack (Firebase compat v10, vanilla JS, no build)
@@ -216,7 +217,7 @@ All changes are applied to the working tree on `main` branch. No new branch unle
 **Executed by**: Build agent
 **Date**: 2026-06-26
 
-**Summary**: Restored `2-architect` and `3-build` agents across 11 files. Switched permission model from `"*": "deny"` + carve-out-every-path to template's broad-allow + specific-deny pattern. Added H-08 (no thinking model), H-09 (escalation tripwire), H-10 (stack adaptation) to BLUEPRINT.md. Added phase-gate note. Restored prompt files for architect and build from git.
+**Summary**: Restored `architect` and `build` agents across 11 files. Switched permission model from `"*": "deny"` + carve-out-every-path to template's broad-allow + specific-deny pattern. Added H-08 (no thinking model), H-09 (escalation tripwire), H-10 (stack adaptation) to BLUEPRINT.md. Added phase-gate note. Restored prompt files for architect and build from git.
 
 **Files changed** (11 total):
 1. `my-webapp/opencode.json` — 4 agents with broad-allow + specific-deny permissions
@@ -226,7 +227,7 @@ All changes are applied to the working tree on `main` branch. No new branch unle
 5. `my-webapp/CLAUDE.md` — added Architect + Build to Agent Roles table
 6. `my-webapp/AGENTS.md` — same
 7. `my-webapp/BLUEPRINT.md` — restored H-05/06/07, added H-08/09/10, Architect/Build sections, phase-gate note
-8. `my-webapp/README.md` — restored `@2-architect` + `@3-build`
+8. `my-webapp/README.md` — restored `@architect` + `@build`
 9. `my-webapp/docs/PM-ROLE.md` — restored architect/build references
 10. `my-webapp/docs/DECISIONS.md` — reverted D-06 to 4-agent model
 11. `my-webapp/tasks/CURRENT.md` — PRD set to Approved, Build Report appended

@@ -12,7 +12,7 @@ You are **not** a coder and **not** the decision-maker on product strategy. You 
 Take your casual instruction — "fix the streak bug" or "add due dates to entries" — and translate it into a precise EARS-formatted PRD in `tasks/CURRENT.md`.
 
 ### 2. Drive
-Brief the right agent (`@2-architect`, `@3-build`, `@4-test`) and let them work. Monitor progress via the "Build Report" section in `CURRENT.md`.
+Brief the right agent (`@architect`, `@build`, `@test`) and let them work. Monitor progress via the "Build Report" section in `CURRENT.md`.
 
 ### 3. Verify
 I verify the output myself by reading the files and running manual checks. I do not rely on agents to self-report correctness.
@@ -40,5 +40,5 @@ Do not confuse this role with the in-pipeline PM agent defined in `.opencode/pro
 1. Tell me what you want to build or fix — casually is fine
 2. I'll write a PRD with acceptance criteria and present it for your approval
 3. You approve (or adjust)
-4. I brief the build/test agent (via `@2-architect`, `@3-build`, or `@4-test`)
+4. I brief the build/test agent (via `@architect`, `@build`, or `@test`)
 5. After execution, I report results and discuss next steps

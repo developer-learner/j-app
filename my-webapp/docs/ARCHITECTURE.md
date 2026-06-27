@@ -19,7 +19,7 @@ Browser (index.html) ──► Firebase Auth (login, session)
 | `userId` | string | Owner's auth UID (backfilled) |
 | `pinned` | boolean | Optional — pinned to top |
 
-Primary journal. Each document is one entry.
+Primary journal. Each document is one entry. (D-02: Flat collections chosen over subcollections for simplicity — avoids restructuring and migration.)
 
 ### `workJournalEntries`
 Same schema as `journalEntries`. Built-in "Work" journal.
@@ -49,15 +49,15 @@ Three match blocks:
 
 1. **`/userPreferences/{userId}`**: Owner-only read/write (`request.auth.uid == userId`)
 2. **`/userJournals/{document}`**: Create requires `userId` match. Read/update/delete requires auth only.
-3. **`/journalEntries/{entryId}`**: Create requires `userId` match. Read/update/delete requires matching `userId`.
+3. **`/journalEntries/{entryId}`**: Create requires `userId` match. Read/update/delete requires matching `userId`. (D-03, D-07: All field-level rule changes require a verified backfill before deployment.)
 4. **`/{collection}/{document}`**: Matches custom journals via `collection.matches('.*JournalEntries')`. Same field checks as journalEntries.
 
-**Key constraint**: Every query on entry collections must include `.where('userId', '==', currentUserUid)` or Firestore denies it.
+**Key constraint**: Every query on entry collections must include `.where('userId', '==', currentUserUid)` or Firestore denies it. (D-04, D-07: Explicit userId filter is required — the rules enforce this at query time. Backward-compatible fallback allows access for documents without the field.)
 
 ## Auth Flow
 
 1. `onAuthStateChanged` fires on page load
-2. `authHandled` flag is set BEFORE `if(user)` check (prevents null re-fires from redirecting)
+2. `authHandled` flag is set BEFORE `if(user)` check (prevents null re-fires from redirecting) (D-01)
 3. On login: load user journals → restore tab order → load theme → switch to Primary tab
 4. On logout: redirect to `login.html`
 5. `login.html`: sign in with email/password, sign up, password reset (all via Firebase Auth)
@@ -98,7 +98,7 @@ container
 3. Results rendered with same format (including edit/delete/pin from global exports)
 
 ## Known Constraints
-- No `orderBy` in queries — sorting is client-side
+- No `orderBy` in queries — sorting is client-side (D-05)
 - Edit/delete buttons hidden after 60 minutes (`timeDifference <= 60`)
 - No offline support beyond browser cache
 - No pagination — all entries loaded at once (current: ~170 entries, fine at this scale)

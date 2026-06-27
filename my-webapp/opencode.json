@@ -1,8 +1,8 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "default_agent": "1-pm",
+  "default_agent": "pm",
   "agent": {
-    "1-pm": {
+    "pm": {
       "description": "PM agent — translates human intent into PRD, verifies results",
       "mode": "primary",
       "prompt": "{file:.opencode/prompts/pm.md}",
@@ -10,7 +10,7 @@
         "edit": { "public/**": "deny", "tests/**": "deny" }
       }
     },
-    "2-architect": {
+    "architect": {
       "description": "Architect agent — produces engineering plans from approved PRD",
       "mode": "primary",
       "prompt": "{file:.opencode/prompts/architect.md}",
@@ -18,7 +18,7 @@
         "edit": { "public/**": "deny", "tests/**": "deny" }
       }
     },
-    "3-build": {
+    "build": {
       "description": "Build agent — implements code per PRD + architecture",
       "mode": "primary",
       "prompt": "{file:.opencode/prompts/build.md}",
@@ -26,7 +26,7 @@
         "edit": { "tests/**": "deny", "**": "allow" }
       }
     },
-    "4-test": {
+    "test": {
       "description": "Test agent — writes tests from PRD acceptance criteria",
       "mode": "primary",
       "prompt": "{file:.opencode/prompts/test.md}",
