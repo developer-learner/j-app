@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function doSearch() {
+    if (!window.currentUserUid) return;
     const searchTerm = searchBar.value.toLowerCase();
     const filterDate = dateFilter.value;
     const collectionName = getCollectionName(currentJournal);
@@ -49,6 +50,7 @@ document.addEventListener('DOMContentLoaded', function () {
         let previousDate = null;
 
         docs.forEach(({ id, data: entry }) => {
+          if (!entry.timestamp) return;
           const entryDate = entry.timestamp.toDate();
           const entryDateStr = `${entryDate.getFullYear()}-${String(entryDate.getMonth() + 1).padStart(2, '0')}-${String(entryDate.getDate()).padStart(2, '0')}`;
           if (filterDate && entryDateStr !== filterDate) return;

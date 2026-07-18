@@ -108,6 +108,9 @@
         const auth = firebase.auth();
         let currentJournal = 'primary';
         let existingJournals = ['primary', 'work'];
+        let journalDocIds = {};
+        // Journals that can never be deleted (lowercase). Add any "main" custom journals here.
+        const PROTECTED_JOURNALS = ['primary', 'work', 'ideas'];
         let userThemeDoc;
         let currentUserUid;
 
@@ -136,6 +139,7 @@
           authHandled = true;
           if (user) {
             currentUserUid = user.uid;
+            window.currentUserUid = user.uid;
             userThemeDoc = db.collection('userPreferences').doc(user.uid);
             const themePromise = userThemeDoc.get().then(doc => {
               const savedTheme = doc.exists && doc.data().theme ? doc.data().theme : 'light-theme';
@@ -217,6 +221,7 @@
 
               snapshot.forEach(doc => {
                 const entry = doc.data();
+                if (!entry.timestamp) return;
                 const entryDate = entry.timestamp.toDate();
                 const dateStr = toLocalDateStr(entryDate);
                 if (!filterDate) uniqueDates.add(dateStr);
@@ -258,6 +263,7 @@
               let previousDate = null;
 
               docs.forEach(({ id, data: entry }) => {
+                if (!entry.timestamp) return;
                 const entryDate = entry.timestamp.toDate();
                 const entryDateStr = toLocalDateStr(entryDate);
                 if (filterDate && entryDateStr !== filterDate) return;
@@ -443,6 +449,7 @@
               docs.sort((a, b) => (b.timestamp?.toDate() || 0) - (a.timestamp?.toDate() || 0));
               let text = `Journal: ${currentJournal}\nExported: ${new Date().toLocaleDateString()}\n${'='.repeat(40)}\n\n`;
               docs.forEach(entry => {
+                if (!entry.timestamp) return;
                 const date = entry.timestamp.toDate().toLocaleString();
                 text += `[${date}]${entry.pinned ? ' 📌' : ''}\n${entry.text}\n${'-'.repeat(40)}\n\n`;
               });
@@ -502,16 +509,37 @@
             });
         });
 
+        function addJournalFromDoc(doc) {
+          const journalName = doc.data().name;
+          if (!journalName || existingJournals.includes(journalName.toLowerCase())) return;
+          journalDocIds[journalName] = doc.id;
+          createJournalTab(journalName, true);
+          existingJournals.push(journalName.toLowerCase());
+        }
+
         function loadUserJournals() {
+          return db.collection('userJournals').where('userId', '==', currentUserUid).get()
+            .then(snapshot => {
+              snapshot.forEach(addJournalFromDoc);
+              return claimLegacyJournals();
+            })
+            .catch(error => console.error('Error loading journals:', error));
+        }
+
+        // Legacy migration: journal docs created before the userId field existed have no owner.
+        // Claim them while the pre-ownership rules still allow the unfiltered read; once the
+        // ownership rules are deployed this read is denied and the catch makes it a no-op.
+        // Safe to remove after the rules deploy has been verified with all tabs present.
+        function claimLegacyJournals() {
           return db.collection('userJournals').get().then(snapshot => {
+            const claims = [];
             snapshot.forEach(doc => {
-              const data = doc.data();
-              if (data.userId && data.userId !== currentUserUid) return;
-              const journalName = data.name;
-              createJournalTab(journalName, true);
-              existingJournals.push(journalName.toLowerCase());
+              if (doc.data().userId) return;
+              claims.push(doc.ref.set({ userId: currentUserUid }, { merge: true }));
+              addJournalFromDoc(doc);
             });
-          }).catch(error => console.error('Error loading journals:', error));
+            return Promise.all(claims);
+          }).catch(() => {});
         }
 
         const TAB_LIGHT_START = 80;
@@ -676,6 +704,7 @@
 
           db.collection('userJournals').doc(currentUserUid + '_' + newJournalName).set({ name: newJournalName, userId: currentUserUid })
             .then(() => {
+              journalDocIds[newJournalName] = currentUserUid + '_' + newJournalName;
               createJournalTab(newJournalName);
               hideNewJournalForm();
               switchJournal(newJournalName);
@@ -700,31 +729,43 @@
         });
 
         deleteJournalBtn.addEventListener('click', function () {
-          if (currentJournal === 'primary' || currentJournal === 'work') {
+          if (PROTECTED_JOURNALS.includes(currentJournal.toLowerCase())) {
             showToast(`${currentJournal.charAt(0).toUpperCase() + currentJournal.slice(1)} journal cannot be deleted.`, 'error');
             return;
           }
 
           showConfirmModal(`Are you sure you want to delete the "${currentJournal}" journal? All entries will be lost.`).then(confirmed => {
             if (!confirmed) return;
-            const journalCollection = getCollectionName(currentJournal);
+            const deletedJournal = currentJournal;
+            const journalCollection = getCollectionName(deletedJournal);
 
-            db.collection(journalCollection).get().then(snapshot => {
-              const batch = db.batch();
-              snapshot.forEach(doc => batch.delete(doc.ref));
-              batch.delete(db.collection('userJournals').doc(currentUserUid + '_' + currentJournal));
-              batch.delete(db.collection('userJournals').doc(currentJournal));
-              batch.commit().then(() => {
-                document.querySelector(`.tab[data-journal='${currentJournal}']`).remove();
+            db.collection(journalCollection).where('userId', '==', currentUserUid).get()
+              .then(snapshot => {
+                const refs = snapshot.docs.map(doc => doc.ref);
+                if (journalDocIds[deletedJournal]) {
+                  refs.push(db.collection('userJournals').doc(journalDocIds[deletedJournal]));
+                }
+                // Firestore caps batches at 500 ops
+                const commits = [];
+                for (let i = 0; i < refs.length; i += 450) {
+                  const batch = db.batch();
+                  refs.slice(i, i + 450).forEach(ref => batch.delete(ref));
+                  commits.push(batch.commit());
+                }
+                return Promise.all(commits);
+              })
+              .then(() => {
+                document.querySelector(`.tab[data-journal='${deletedJournal}']`).remove();
                 assignTabColors();
-                existingJournals = existingJournals.filter(name => name !== currentJournal.toLowerCase());
-                showToast(`Journal "${currentJournal}" deleted.`, 'info');
+                existingJournals = existingJournals.filter(name => name !== deletedJournal.toLowerCase());
+                delete journalDocIds[deletedJournal];
+                showToast(`Journal "${deletedJournal}" deleted.`, 'info');
                 switchJournal('primary');
-              }).catch(error => {
-                console.error(`Error deleting journal ${currentJournal}:`, error);
+              })
+              .catch(error => {
+                console.error(`Error deleting journal ${deletedJournal}:`, error);
                 showToast('Failed to delete journal.', 'error');
               });
-            });
           });
         });
 
@@ -732,7 +773,6 @@
         window.editEntry = editEntry;
         window.deleteEntry = deleteEntry;
         window.togglePin = togglePin;
-        window.currentUserUid = currentUserUid;
       });
     </script>
 
