@@ -29,7 +29,7 @@
 
         <div id="signup-form" style="display: none;">
           <input type="email" id="signup-email" class="auth-input" placeholder="Email" required>
-          <input type="password" id="signup-password" class="auth-input" placeholder="Password" required>
+          <input type="password" id="signup-password" class="auth-input" placeholder="Password (min 6 characters)" required>
           <button id="signup-btn" class="btn">Sign Up</button>
         </div>
 
@@ -81,6 +81,21 @@
           errorMessage.style.color = 'red';
         }
 
+        function friendlyAuthError(error) {
+          const messages = {
+            'auth/invalid-email': 'That email address looks invalid.',
+            'auth/user-not-found': 'Incorrect email or password.',
+            'auth/wrong-password': 'Incorrect email or password.',
+            'auth/invalid-credential': 'Incorrect email or password.',
+            'auth/invalid-login-credentials': 'Incorrect email or password.',
+            'auth/email-already-in-use': 'An account with that email already exists.',
+            'auth/weak-password': 'Password must be at least 6 characters.',
+            'auth/too-many-requests': 'Too many attempts. Please wait a moment and try again.',
+            'auth/network-request-failed': 'Network error. Check your connection and try again.'
+          };
+          return messages[error.code] || 'Something went wrong. Please try again.';
+        }
+
         function hideError() {
           errorMessage.style.display = 'none';
         }
@@ -100,7 +115,7 @@
             })
             .catch(error => {
               console.error('Error logging in:', error);
-              showError(error.message);
+              showError(friendlyAuthError(error));
               setLoading(loginBtn, false, '', 'Login');
             });
         };
@@ -135,7 +150,7 @@
             })
             .catch(error => {
               console.error('Error signing up:', error);
-              showError(error.message);
+              showError(friendlyAuthError(error));
               setLoading(signupBtn, false, '', 'Sign Up');
             });
         };
@@ -170,7 +185,7 @@
             })
             .catch(error => {
               console.error('Error sending password reset email:', error);
-              showError(error.message);
+              showError(friendlyAuthError(error));
               setLoading(sendResetBtn, false, '', 'Send Reset Link');
             });
         };

@@ -26,7 +26,7 @@
         <div class="toolbar">
           <span id="user-info" style="display: none;"></span>
           <div id="menu-container" class="menu-container" style="display: none;">
-            <button id="menu-btn" class="menu-btn">☰</button>
+            <button id="menu-btn" class="menu-btn" aria-label="Menu">☰</button>
             <div id="dropdown-menu" class="dropdown-menu" style="display: none;">
               <button id="export-btn" class="dropdown-item">⬇️ Export</button>
               <button id="logout-btn" class="dropdown-item">🚪 Log Out</button>
@@ -42,11 +42,11 @@
         <div class="stat"><span class="stat-icon">🔥</span><span class="stat-value" id="streak-count">0</span><span class="stat-label">day streak</span></div>
       </div>
 
-      <div class="tabs" id="tabs-container">
-        <div id="primary-tab" class="tab active" data-journal="primary" draggable="true" title="Primary">Primary</div>
-        <div id="work-tab" class="tab" data-journal="work" draggable="true" title="Work">Work</div>
-        <button id="add-journal-btn" class="add-journal-btn">+</button>
-        <button id="delete-journal-btn" class="delete-journal-btn">🗑️</button>
+      <div class="tabs" id="tabs-container" role="tablist">
+        <div id="primary-tab" class="tab active" data-journal="primary" draggable="true" title="Primary" role="tab" tabindex="0">Primary</div>
+        <div id="work-tab" class="tab" data-journal="work" draggable="true" title="Work" role="tab" tabindex="0">Work</div>
+        <button id="add-journal-btn" class="add-journal-btn" aria-label="New journal">+</button>
+        <button id="delete-journal-btn" class="delete-journal-btn" aria-label="Delete current journal">🗑️</button>
       </div>
       <div id="new-journal-form" class="new-journal-form" style="display: none;">
         <input type="text" id="new-journal-input" placeholder="Journal name..." maxlength="30">
@@ -59,7 +59,7 @@
       </div>
       <div class="entry-container">
         <textarea id="journalEntry" placeholder="Start typing your journal entry..." rows="4"></textarea>
-        <button id="save-btn" class="save-btn"><span class="arrow">&#11014;</span></button>
+        <button id="save-btn" class="save-btn" aria-label="Save entry"><span class="arrow">&#11014;</span></button>
       </div>
       <div id="char-counter">0 characters</div>
       <div class="entries-section">
@@ -106,6 +106,8 @@
       document.addEventListener('DOMContentLoaded', function () {
         const db = firebase.firestore();
         const auth = firebase.auth();
+        // Paint the last-known theme immediately; Firestore stays the source of truth.
+        document.body.classList.add(localStorage.getItem('theme') === 'dark-theme' ? 'dark-theme' : 'light-theme');
         let currentJournal = 'primary';
         let existingJournals = ['primary', 'work'];
         let journalDocIds = {};
@@ -131,6 +133,11 @@
         journalEntry.addEventListener('input', () => {
           autoResize();
           charCounter.textContent = `${journalEntry.value.length} characters`;
+          if (journalEntry.value) {
+            localStorage.setItem('draft:' + currentJournal, journalEntry.value);
+          } else {
+            localStorage.removeItem('draft:' + currentJournal);
+          }
         });
 
         let authHandled = false;
@@ -141,9 +148,12 @@
             currentUserUid = user.uid;
             window.currentUserUid = user.uid;
             userThemeDoc = db.collection('userPreferences').doc(user.uid);
-            const themePromise = userThemeDoc.get().then(doc => {
-              const savedTheme = doc.exists && doc.data().theme ? doc.data().theme : 'light-theme';
-              document.body.classList.add(savedTheme);
+            const prefsPromise = userThemeDoc.get().catch(() => null);
+            const themePromise = prefsPromise.then(doc => {
+              const savedTheme = doc && doc.exists && doc.data().theme ? doc.data().theme : 'light-theme';
+              const current = document.body.classList.contains('dark-theme') ? 'dark-theme' : 'light-theme';
+              if (savedTheme !== current) document.body.classList.replace(current, savedTheme);
+              localStorage.setItem('theme', savedTheme);
               themeToggleButton.textContent = savedTheme === 'dark-theme' ? '🌙 Dark Mode' : '☀️ Light Mode';
             });
             document.getElementById('stats-bar').style.display = 'flex';
@@ -151,10 +161,11 @@
             document.getElementById('user-info').style.display = 'inline';
             document.getElementById('menu-container').style.display = 'flex';
             loadUserJournals().then(() => {
-              return Promise.all([restoreTabOrder(), themePromise]);
+              return Promise.all([prefsPromise.then(restoreTabOrder), themePromise]);
             }).then(() => {
               assignTabColors();
-              switchJournal('primary');
+              const lastJournal = localStorage.getItem('lastJournal');
+              switchJournal(lastJournal && existingJournals.includes(lastJournal.toLowerCase()) ? lastJournal : 'primary');
             });
           } else {
             document.body.classList.add('light-theme');
@@ -167,10 +178,12 @@
           if (document.body.classList.contains('dark-theme')) {
             document.body.classList.replace('dark-theme', 'light-theme');
             themeToggleButton.textContent = '☀️ Light Mode';
+            localStorage.setItem('theme', 'light-theme');
             userThemeDoc.set({ theme: 'light-theme' }, { merge: true });
           } else {
             document.body.classList.replace('light-theme', 'dark-theme');
             themeToggleButton.textContent = '🌙 Dark Mode';
+            localStorage.setItem('theme', 'dark-theme');
             userThemeDoc.set({ theme: 'dark-theme' }, { merge: true });
           }
           assignTabColors();
@@ -190,6 +203,12 @@
         function switchJournal(journal) {
           currentJournal = journal;
           dateFilter.value = '';
+          const searchBar = document.getElementById('search-bar');
+          if (searchBar) searchBar.value = '';
+          localStorage.setItem('lastJournal', journal);
+          journalEntry.value = localStorage.getItem('draft:' + journal) || '';
+          autoResize();
+          charCounter.textContent = `${journalEntry.value.length} characters`;
 
           document.querySelectorAll('.tab').forEach(tab => {
             tab.classList.toggle('active', tab.getAttribute('data-journal') === journal);
@@ -229,14 +248,18 @@
               });
 
               let streak = 0;
-              if (!filterDate) {
-                const today = new Date();
+              if (!filterDate && uniqueDates.size > 0) {
                 const sorted = [...uniqueDates].sort().reverse();
+                // Anchor at today, or yesterday if today has no entry yet —
+                // a live streak shouldn't read 0 before today's entry is written.
+                const anchor = new Date();
+                if (sorted[0] !== toLocalDateStr(anchor)) {
+                  anchor.setDate(anchor.getDate() - 1);
+                }
                 for (let i = 0; i < sorted.length; i++) {
-                  const expected = new Date(today);
+                  const expected = new Date(anchor);
                   expected.setDate(expected.getDate() - i);
-                  const expectedStr = toLocalDateStr(expected);
-                  if (sorted[i] === expectedStr) {
+                  if (sorted[i] === toLocalDateStr(expected)) {
                     streak++;
                   } else {
                     break;
@@ -306,26 +329,23 @@
           pinButton.className = 'pin-btn' + (entry.pinned ? ' pinned' : '');
           pinButton.innerHTML = entry.pinned ? '📍' : '📌';
           pinButton.title = entry.pinned ? 'Unpin' : 'Pin to top';
+          pinButton.setAttribute('aria-label', pinButton.title);
           pinButton.onclick = () => togglePin(entryId, !entry.pinned);
           actionsDiv.appendChild(pinButton);
-
-          // Checkbox for selection
-          const checkbox = document.createElement('input');
-          checkbox.type = 'checkbox';
-          checkbox.className = 'entry-checkbox';
-          actionsDiv.appendChild(checkbox);
 
           if (timeDifference <= 60) {
             const editButton = document.createElement('button');
             editButton.className = 'edit-btn';
             editButton.innerHTML = '✏️';
             editButton.title = 'Edit';
+            editButton.setAttribute('aria-label', 'Edit entry');
             editButton.onclick = () => editEntry(entryId, entry.text, li);
 
             const deleteButton = document.createElement('button');
             deleteButton.className = 'delete-btn';
             deleteButton.innerHTML = '🗑️';
             deleteButton.title = 'Delete';
+            deleteButton.setAttribute('aria-label', 'Delete entry');
             deleteButton.onclick = () => deleteEntry(entryId);
 
             actionsDiv.appendChild(editButton);
@@ -490,14 +510,16 @@
           }
 
           saveBtn.classList.add('spinning');
-          const timestamp = new Date();
           const collectionName = getCollectionName(currentJournal);
 
           const textToSave = journalEntry.value;
-          db.collection(collectionName).add({ text, timestamp, userId: currentUserUid })
+          db.collection(collectionName).add({ text, timestamp: firebase.firestore.FieldValue.serverTimestamp(), userId: currentUserUid })
             .then(() => {
               saveBtn.classList.remove('spinning');
               journalEntry.value = '';
+              localStorage.removeItem('draft:' + currentJournal);
+              charCounter.textContent = '0 characters';
+              autoResize();
               showToast('Entry saved!', 'success');
               loadEntries();
             })
@@ -521,25 +543,8 @@
           return db.collection('userJournals').where('userId', '==', currentUserUid).get()
             .then(snapshot => {
               snapshot.forEach(addJournalFromDoc);
-              return claimLegacyJournals();
             })
             .catch(error => console.error('Error loading journals:', error));
-        }
-
-        // Legacy migration: journal docs created before the userId field existed have no owner.
-        // Claim them while the pre-ownership rules still allow the unfiltered read; once the
-        // ownership rules are deployed this read is denied and the catch makes it a no-op.
-        // Safe to remove after the rules deploy has been verified with all tabs present.
-        function claimLegacyJournals() {
-          return db.collection('userJournals').get().then(snapshot => {
-            const claims = [];
-            snapshot.forEach(doc => {
-              if (doc.data().userId) return;
-              claims.push(doc.ref.set({ userId: currentUserUid }, { merge: true }));
-              addJournalFromDoc(doc);
-            });
-            return Promise.all(claims);
-          }).catch(() => {});
         }
 
         const TAB_LIGHT_START = 80;
@@ -571,6 +576,8 @@
           tab.setAttribute('data-journal', journalName);
           tab.setAttribute('draggable', 'true');
           tab.setAttribute('title', journalName);
+          tab.setAttribute('role', 'tab');
+          tab.setAttribute('tabindex', '0');
 
           addJournalBtn.insertAdjacentElement('beforebegin', tab);
           if (!skipColor) assignTabColors();
@@ -627,19 +634,16 @@
           });
         }
 
-        function restoreTabOrder() {
-          return userThemeDoc.get().then(doc => {
-            if (doc.exists && doc.data().tabOrder) {
-              const order = doc.data().tabOrder;
-              const tabsContainer = document.getElementById('tabs-container');
-              order.reverse().forEach(name => {
-                const tab = tabsContainer.querySelector(`.tab[data-journal="${name}"]`);
-                if (tab) {
-                  tabsContainer.insertBefore(tab, tabsContainer.firstChild);
-                }
-              });
+        function restoreTabOrder(doc) {
+          if (!doc || !doc.exists || !doc.data().tabOrder) return;
+          const order = [...doc.data().tabOrder];
+          const tabsContainer = document.getElementById('tabs-container');
+          order.reverse().forEach(name => {
+            const tab = tabsContainer.querySelector(`.tab[data-journal="${name}"]`);
+            if (tab) {
+              tabsContainer.insertBefore(tab, tabsContainer.firstChild);
             }
-          }).catch(() => {});
+          });
         }
 
         enableTabDragging();
@@ -648,11 +652,18 @@
           if (entriesList) loadEntries();
         });
 
-        dateFilter.addEventListener('change', refreshEntries);
-
         document.getElementById('tabs-container').addEventListener('click', (event) => {
           const tab = event.target.closest('.tab');
           if (tab) {
+            switchJournal(tab.getAttribute('data-journal'));
+          }
+        });
+
+        document.getElementById('tabs-container').addEventListener('keydown', (event) => {
+          if (event.key !== 'Enter' && event.key !== ' ') return;
+          const tab = event.target.closest('.tab');
+          if (tab) {
+            event.preventDefault();
             switchJournal(tab.getAttribute('data-journal'));
           }
         });
