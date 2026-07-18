@@ -40,7 +40,7 @@ Build agent appends completion summary to `tasks/CURRENT.md` under "Build Report
 When tests exist, they must be written from the acceptance criteria in `tasks/CURRENT.md`, not from reading the source code.
 
 ### H-08: Model must NOT be a thinking model (Rule 1 from blueprint)
-Thinking models emit output into `reasoning_content` and leave `content` empty, which breaks agent parsing (empty/invalid response → silent failure or JSON error). The active model in OpenCode MUST be non-thinking. If using LM Studio, verify this before starting work.
+Thinking models emit output into `reasoning_content` and leave `content` empty, which breaks agent parsing (empty/invalid response → silent failure or JSON error). The active model in OpenCode MUST NOT route output through `reasoning_content`. This failure mode is specific to OpenAI-compatible local servers; the Anthropic cloud provider (current config, D-72) returns `content` normally.
 
 ### H-09: Escalation tripwire — two strikes, then escalate (Rule 2 from blueprint)
 Do not retry the same failing fix more than twice. Two strikes → escalate to a frontier model or halt and leave a note. Same failure twice → re-plan; plan fails twice → escalate to PM; PM stuck → human decides.
